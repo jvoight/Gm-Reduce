@@ -1,81 +1,72 @@
 SetClassGroupBounds("GRH");
-IdealShortVectorsProcess:=function(I, l,u: Minkowski:=true, timeout:=2);
+
+IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
 //l,u are size in which to search over lattice, scaled by a medium sized vector in parallelepiped.
-    if Degree(NumberField(Order(I))) gt 1 then
-
+  if Degree(NumberField(Order(I))) gt 1 then
     if Minkowski eq true then
+      Ibasis:=Basis(I);
+      IxDen:=&*[ pp[1]^pp[2] : pp in Factorization(I*Denominator(I)) ];
+      IxDen_gens,mxDen:=MinkowskiLattice(IxDen);
+      Igens:=IxDen_gens/Denominator(I);
+      BI:=Basis(Igens);
+      dimL:=#BI;
+      prec:=100+6*dimL;
+      Rprec:=RealField(prec);
+      VS:=VectorSpace(Rprec,dimL);
+      BI_gens:=[ [ Rprec!v : v in Eltseq(gen) ] : gen in BI ];
 
-        Ibasis:=Basis(I);
-        IxDen:=&*[ pp[1]^pp[2] : pp in Factorization(I*Denominator(I)) ];
-        IxDen_gens,mxDen:=MinkowskiLattice(IxDen);
-        Igens:=IxDen_gens/Denominator(I);
-        BI:=Basis(Igens);
-        dimL:=#BI;
-
-        prec:=100+6*dimL;
+      while Dimension(sub< VS | BI_gens >) lt dimL do
+        prec:=prec+20;
         Rprec:=RealField(prec);
         VS:=VectorSpace(Rprec,dimL);
         BI_gens:=[ [ Rprec!v : v in Eltseq(gen) ] : gen in BI ];
+      end while;
 
-        while Dimension(sub< VS | BI_gens >) lt dimL do
-            prec:=prec+20;
-            Rprec:=RealField(prec);
-            VS:=VectorSpace(Rprec,dimL);
-            BI_gens:=[ [ Rprec!v : v in Eltseq(gen) ] : gen in BI ];
+      LWB:=LatticeWithBasis(RMatrixSpace(Rprec,dimL,dimL)!&cat(BI_gens)); //lower the precision for efficiency
+      OLWB:=LWB; // save original lattice in case wanted
+      LWB:=CoordinateLattice(LWB);
+      min_vec:=Min(LWB);
+      avg_vec:=Determinant(LWB)^(1/(dimL));
+      //EC:=EnumerationCost(LWB20, 10*Sqrt(avg_vec));
+      SVP:=ShortVectorsProcess(LWB, avg_vec*l, avg_vec*u);
+
+      SV:=[];
+      while not(IsEmpty(SVP)) do
+        Append(~SV, NextVector(SVP));
+      end while;
+
+      t:=Realtime(); //set a timeout
+      SVcoord :=[];
+      for w in SV do
+        while Realtime(t) lt timeout do
+          Append(~SVcoord, [ Round(c) : c in Eltseq(w) ]);
         end while;
+      end for;
 
-        LWB:=LatticeWithBasis(RMatrixSpace(Rprec,dimL,dimL)!&cat(BI_gens)); //lower the precision for efficiency
-        OLWB:=LWB; // save original lattice in case wanted
-	      LWB:=CoordinateLattice(LWB);
-
-        min_vec:=Min(LWB);
-        avg_vec:=Determinant(LWB)^(1/(dimL));
-        //EC:=EnumerationCost(LWB20, 10*Sqrt(avg_vec));
-        SVP:=ShortVectorsProcess(LWB, avg_vec*l, avg_vec*u);
-
-        SV:=[];
-        while not(IsEmpty(SVP)) do
-            Append(~SV, NextVector(SVP));
-        end while;
-
-        t:=Realtime(); //set a timeout
-        SVcoord :=[];
-        for w in SV do
-            while Realtime(t) lt timeout do
-                Append(~SVcoord, [ Round(c) : c in Eltseq(w) ]);
-            end while;
-        end for;
-
-        SIelts := [ &+[w[i]*Ibasis[i] : i in [1..#Ibasis]] : w in SVcoord ] cat [1];
-        //assert something to make sure there was no precision error
-        return SIelts;
+      SIelts := [ &+[w[i]*Ibasis[i] : i in [1..#Ibasis]] : w in SVcoord ] cat [1];
+      //assert something to make sure there was no precision error
+      return SIelts;
 
     else
-        Igens := LLLBasis(I);
-        assert [ A/Denominator(I) : A in LLLBasis(I*Denominator(I)) ] eq Igens;
-        Zn :=StandardLattice(#Igens);
-        SVP:=ShortVectorsProcess(Zn, Ceiling(l),Ceiling(u));
-        SV:=[];
-        while not(IsEmpty(SVP)) do
-            Append(~SV, NextVector(SVP));
-        end while;
-        MM := [ Eltseq(w) : w in SV ];
-        SIelts:=[ (&+[ M[i]*Igens[i] : i in [1..#Igens] ]) : M in MM ] cat [1];
-        return SIelts;
+      Igens := LLLBasis(I);
+      assert [ A/Denominator(I) : A in LLLBasis(I*Denominator(I)) ] eq Igens;
+      Zn :=StandardLattice(#Igens);
+      SVP:=ShortVectorsProcess(Zn, Ceiling(l),Ceiling(u));
+      SV:=[];
+      while not(IsEmpty(SVP)) do
+        Append(~SV, NextVector(SVP));
+      end while;
+      MM := [ Eltseq(w) : w in SV ];
+      SIelts:=[ (&+[ M[i]*Igens[i] : i in [1..#Igens] ]) : M in MM ] cat [1];
+      return SIelts;
     end if;
 
-    else
-       tr, I_pr:=IsPrincipal(I);
-       return [I_pr];
-    end if;
+  else
+    tr, I_pr:=IsPrincipal(I);
+    return [I_pr];
+  end if;
 
 end function;
-
-
-
-
-
-
 
 function SmallFunctions(Qs, d)
 
@@ -179,16 +170,14 @@ CoefficientValuationsSum:=function(f,pp)
 end function;
 
 /*
-ZK:=Integers(K);
-LZK:=LLL(ZK);
-P5<b1,b2,b3,b4,b5>:=PolynomialRing(Rationals(),5);
-P5vars:=[b1,b2,b3,b4,b5];
-fuv_coefs:=Coefficients(fuv);
-[ &+[ P5vars[i]*cc[i] : i in [1..#P5vars] ] : cc in [ LZK!d : d in fuv_coefs ] ];
-P5xt<x,t>:=PolynomialRing(P5,2);
+  ZK:=Integers(K);
+  LZK:=LLL(ZK);
+  P5<b1,b2,b3,b4,b5>:=PolynomialRing(Rationals(),5);
+  P5vars:=[b1,b2,b3,b4,b5];
+  fuv_coefs:=Coefficients(fuv);
+  [ &+[ P5vars[i]*cc[i] : i in [1..#P5vars] ] : cc in [ LZK!d : d in fuv_coefs ] ];
+  P5xt<x,t>:=PolynomialRing(P5,2);
 */
-
-
 
 BelyiObjectiveFunction:=function(fuv)
   K := BaseRing(Parent(fuv));
@@ -200,7 +189,6 @@ BelyiObjectiveFunction:=function(fuv)
   assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
   return (&+[ m[1] : m in mexps])*x1 + (&+[ m[2] : m in mexps])*x2 + #mexps*x3;
 end function;
-
 
 MultivariateToUnivariate:=function(f)
   //turns an element in K[x,t] into an element K[x][t]
@@ -251,11 +239,6 @@ PolynomialToFactoredString:=function(f)
   //assert f eq eval(str);
   return str;
 end function;
-
-
-
-
-
 
 reducemodel_padic := function(fuv : Polyhedron:=false);
   K := BaseRing(Parent(fuv));
@@ -367,14 +350,7 @@ reducemodel_padic := function(fuv : Polyhedron:=false);
   new_scaling:= new_fuvs[1,3];
 
   return new_fuv, new_scaling;
-
 end function;
-
-
-
-
-
-
 
 reducemodel_units := function(fuv : Polyhedron:=false);
   K := BaseRing(Parent(fuv));
@@ -436,13 +412,7 @@ reducemodel_units := function(fuv : Polyhedron:=false);
     guv:=Evaluate(fuv,[a*u,b*v])*c;
 
     return guv, [a,b,c];
-
 end function;
-
-
-
-
-
 
 reducemodel_old := function(fuv : Polyhedron:=false);
   K := BaseRing(Parent(fuv));
@@ -542,8 +512,8 @@ reducemodel_old := function(fuv : Polyhedron:=false);
       Append(~nodemins, <objvals, soln, c0, e0f0>);
 */
 
-
-  /*fuv_new:=Evaluate(fuv,[a*u,b*v])/c;
+/*
+  fuv_new:=Evaluate(fuv,[a*u,b*v])/c;
   UK,mUK:=UnitGroup(K);
   eps:=K!(mUK(UK.2));
 
@@ -554,7 +524,7 @@ reducemodel_old := function(fuv : Polyhedron:=false);
        Append(~ff_units,<#Sprint(fU),fU>);
     end for;
   end for;
-  ff_units:=Sort(ff_units);*/
-
+  ff_units:=Sort(ff_units);
+*/
   return [ Evaluate(fuv,[a*u,b*v])/c, 1/c];
 end function;
