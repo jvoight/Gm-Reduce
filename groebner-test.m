@@ -31,6 +31,7 @@ P4 := 32*(4*g^3-69*g^2+74*g-49)*x^4+32*(21*g^3+53*g^2-68*g+58)*x^3-8*(97*g^3+95
 P := P2^2*P3*P4^4/tau;
 
 phi:=P;
+print "phi has divisor";
 Support(Divisor(phi));
 
 RsandPs := Support(Divisor(phi));
