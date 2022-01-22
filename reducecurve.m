@@ -49,7 +49,7 @@ IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
 
     else
       Igens := LLLBasis(I);
-      assert [ A/Denominator(I) : A in LLLBasis(I*Denominator(I)) ] eq Igens;
+      // assert [ A/Denominator(I) : A in LLLBasis(I*Denominator(I)) ] eq Igens;
       Zn :=StandardLattice(#Igens);
       SVP:=ShortVectorsProcess(Zn, Ceiling(l),Ceiling(u));
       SV:=[];
