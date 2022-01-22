@@ -1,3 +1,4 @@
+load "reducecurve.m";
 
 // Belyi maps downloaded from the LMFDB on 21 January 2022.
 // Magma code for Belyi map with label 8T50-6.1.1_6.2_2.2.2.1.1-a
@@ -16,8 +17,6 @@ phi := (1/481555322138015200*(493227617344194*nu^2-8409605121382299*nu+625898368
 
 print "phi has divisor";
 Support(Divisor(phi));
-
-load "../../reducecurve.m";
 
 RsandPs := Support(Divisor(phi));
 RsandQs := Support(Divisor(phi-1));
