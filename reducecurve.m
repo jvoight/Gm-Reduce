@@ -121,6 +121,10 @@ end function;
 //What is the difference in size from a divisor D and -D?
 //Whats the relationship between the size of the places, the multiplicity and the size of f?
 
+PlaneModel := function(phi,x_op);
+  return model(phi,x_op);
+end function;
+
 model := function(phi,x_op);
   //add 1/phi etc in here.
   fu := MinimalPolynomial(phi);
@@ -157,6 +161,46 @@ model := function(phi,x_op);
   _<t,x> := PolynomialRing(K,2);
   return Evaluate(fuv,[x,t,0]);
   //x=v, t=u
+end function;
+
+function PlaneModelGroebner(phi, x_op)
+  //{Given a Belyi map phi, return a plane model for its domain such that t is the Belyi map}
+  KC := Parent(phi);
+  C := Curve(KC);
+  K := BaseRing(C);
+  nu := K.1;
+  phi0 := Numerator(phi);
+  phioo := Denominator(phi);
+  x_op0 := Numerator(x_op);
+  x_opoo := Denominator(x_op);
+  if Genus(C) eq 0 then // defined on PP^1, so no curve equation
+    R<X,Phi,X_op,u,v> := PolynomialRing(K,5);
+    h := hom< KC -> R | [X]>;
+    I := ideal< R | h(phioo)*Phi - h(phi0), h(x_opoo)*X_op - h(x_op0), v*h(phioo) - 1, u*h(x_opoo) - 1>; // need last equations to avoid points where phioo = 0
+    // eliminate v to obtain plane equation
+    basis := Basis(EliminationIdeal(I,{X_op,Phi}));
+    assert #basis eq 1;
+    new_eqn := basis[1];
+    S<x,t> := PolynomialRing(K,2);
+    h_plane := hom< Parent(new_eqn) -> S | [x,t,0,0,0] >;
+  else // so the curve actually has an equation
+    KC<x,y> := KC;
+    R<X,Y,Phi,X_op,u,v> := PolynomialRing(K,6);
+    h := hom< KC -> R | [X,Y]>;
+    curve_eqn := DefiningEquation(AffinePatch(C,1));
+    h_curve := hom< Parent(curve_eqn) -> R | [X,Y] >;
+    // need last equation to avoid points where phioo = 0
+    I := ideal< R | h_curve(curve_eqn), h(phioo)*Phi - h(phi0), h(x_opoo)*X_op - h(x_op0), v*h(phioo) - 1, u*h(x_opoo) - 1>; // need last equations to avoid points where phioo = 0
+    // eliminate X and v to obtain plane equation
+    basis := Basis(EliminationIdeal(I,{X_op,Phi}));
+    assert #basis eq 1;
+    new_eqn := basis[1];
+    printf "new equation = %o\n", new_eqn;
+    S<x,t> := PolynomialRing(K,2);
+    h_plane := hom< Parent(new_eqn) -> S | [0,0,t,x,0,0] >;
+    //h_plane := hom< Parent(new_eqn) -> S | X_op :-> x, Phi :-> t, X :-> 0, Y :-> 0, u :-> 0, v :-> 0 >;
+  end if;
+  return h_plane(new_eqn);
 end function;
 
 //What's the relationship between #model and #reduced_model? pretty much linear it would seem
