@@ -24,7 +24,7 @@ RsandQs := Support(Divisor(phi-1));
 PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 //xs := SmallFunctions(PsQsRs, 2*Genus(X)+1);
 //"The number of small functions is"; #xs;
-small_functions:=SmallFunctions(PsQsRs, 3);
+small_functions:=SmallFunctions(PsQsRs, 1);
 
 SetProfile(true);
 ffs:=[];
@@ -45,11 +45,15 @@ for xx in small_functions do
 end for;
 ParallelSort(~ffs,~support);
 
-shortest_ffs:=[ ffs[i] : i in [1..Min(#ffs,5)] ];
-fuv:=shortest_ffs[1,2];
+shortest_ffs:=[ ffs[i] : i in [1..Min(#ffs,10)] ];
+for fuv_es in shortest_ffs do
+  fuv := fuv_es[2];
 
-padic_redfuv:= reducemodel_padic(fuv);
-unit_redfuv := reducemodel_units(padic_redfuv);
-fuv_display := PolynomialToFactoredString(MultivariateToUnivariate(unit_redfuv));
+  padic_redfuv:= reducemodel_padic(fuv);
+  unit_redfuv := reducemodel_units(padic_redfuv);
+  fuv_display := PolynomialToFactoredString(MultivariateToUnivariate(unit_redfuv));
+  print fuv_display;
+  print "";
+end for;
 
 ProfilePrintByTotalTime(:Max:=40);
