@@ -121,7 +121,11 @@ end function;
 //What is the difference in size from a divisor D and -D?
 //Whats the relationship between the size of the places, the multiplicity and the size of f?
 
-PlaneModel := function(phi, x_op);
+PlaneModel := function(phi,x_op);
+  return model(phi,x_op);
+end function;
+
+model := function(phi,x_op);
   //add 1/phi etc in here.
   fu := MinimalPolynomial(phi);
   fv := MinimalPolynomial(x_op);
@@ -133,14 +137,15 @@ PlaneModel := function(phi, x_op);
   fves := Eltseq(fv);
   fu := Numerator(&+[Evaluate(fues[i],zf)*uf^(i-1) : i in [1..#fues]]);
   fv := Numerator(&+[Evaluate(fves[i],zf)*vf^(i-1) : i in [1..#fves]]);
+
   fuv := Resultant(fu,fv,z);
   //groebner basis? 1/phi here etc
   /*
-    _<u> := PolynomialRing(K);
-    _<v> := PolynomialRing(Parent(u));
-    cuv := Coefficients(fuv);
-    muv := Monomials(fuv);
-    return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
+  _<u> := PolynomialRing(K);
+  _<v> := PolynomialRing(Parent(u));
+  cuv := Coefficients(fuv);
+  muv := Monomials(fuv);
+  return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
   */
   fuvFact := Factorization(fuv);
   if #fuvFact gt 1 then
@@ -153,9 +158,9 @@ PlaneModel := function(phi, x_op);
   end if;
   //_<u,v> := PolynomialRing(K,2);
   //return Evaluate(fuv,[v,u,0]);
-  //x=v, t=u
   _<t,x> := PolynomialRing(K,2);
   return Evaluate(fuv,[x,t,0]);
+  //x=v, t=u
 end function;
 
 function PlaneModelGroebner(phi, x_op)
@@ -238,6 +243,30 @@ MultivariateToUnivariate:=function(f)
   return eval(fstring);
 end function;
 
+
+MonicToIntegral:=function(f);
+  //scale the monic univariate polynomial to be integral
+  assert IsMonic(f);
+  K:=BaseRing(Parent(f));
+  ZK:=Integers(K);
+  coefs:=[ a : a in Coefficients(f) | a ne 0 ];
+  pps:=[ a[1] : a in Factorization(&*coefs*ZK) ];
+  scale:=1*ZK;
+  for pp in pps do
+    vals:=[ Valuation(cc,pp) : cc in coefs ];
+    min:=Min(vals);
+    scale:=scale*pp^(-min);
+  end for;
+
+  aprin, a := IsPrincipal(scale);
+  if aprin eq false then a:=IdealShortVectorsProcess(scale, 0.00001, 2: Minkowski:=false)[1]; end if;
+  f_new:=f*a;
+
+  return f_new, 1/a;
+end function;
+
+
+
 PolynomialToFactoredString:=function(f)
   //factorise the polynomial and return it as a string
   //Needs to be a multivariate polynomial in K[x][t]
@@ -246,28 +275,29 @@ PolynomialToFactoredString:=function(f)
   mon:=Monomials(f);
   str:="";
   for j in [1..#coefs] do
-    a:=LeadingCoefficient(coefs[j]);
-    fac:=Factorization(coefs[j]);
 
     if j ne 1 then
       str:=str cat " + ";
     end if;
 
-    for i in [1..#fac] do
-      if i eq 1 then
-        if fac[i,2] eq 1 then
-          str:= str cat Sprintf("(%o)", fac[i,1]);
-        else
-          str:= str cat Sprintf("(%o)^%o", fac[i,1],fac[i,2]);
-        end if;
-      else
-        if fac[i,2] eq 1 and #[ d[2] : d in fac | d[2] eq 1 ] eq 1 then
-          str:= str cat Sprintf("*(%o)", a*fac[i,1]);
-        else
-          str:= str cat Sprintf("*(%o)^%o", fac[i,1],fac[i,2]);
-        end if;
-      end if;
-    end for;
+    if Degree(coefs[j]) ne 0 then
+      a:=LeadingCoefficient(coefs[j]);
+      fac:=Factorization(coefs[j]);
+      list:=[];
+      for item in fac do
+        int,co:= MonicToIntegral(item[1]);
+        Append(~list,<co,int,item[2]>);
+      end for;
+
+      c:=a*(&*[b[1] : b in list]);
+      str:= str cat Sprintf("(%o)",c);
+      for i in [1..#list] do
+        str:= str cat Sprintf("*(%o)^%o", list[i,2],list[i,3]);
+      end for;
+
+    else
+      str:=str cat Sprint(coefs[j]);
+    end if;
 
     if j ne 1 then
       str:=str cat Sprintf("*%o",mon[j]);
@@ -275,42 +305,52 @@ PolynomialToFactoredString:=function(f)
 
   end for;
 
-  //assert f eq eval(str);
+  K<nu1>:=BaseRing(BaseRing(f));
+  Kx<x>:=PolynomialRing(K);
+  Kxt<t>:=PolynomialRing(Kx);
+
+  assert f eq eval(str);
   return str;
 end function;
 
-reducemodel_padic := function(fuv : Polyhedron:=false);
-  K := BaseRing(Parent(fuv));
-  u := Parent(fuv).1;
-  v := Parent(fuv).2;
+
+
+reducemodel_padic := function(f : Polyhedron:=false);
+  //input: a multivariate polynomial f \in K[z_1,..,z_n]
+  //output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]
+  K := BaseRing(Parent(f));
+  variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
+  n:=#variables;
   ZK := Integers(K);
   k:=Integers();
-  Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
-  obj_fun:= BelyiObjectiveFunction(fuv);
 
-  mexps := [ Exponents(m) : m in Monomials(fuv) ];
-  coefs:=Coefficients(fuv);
-  assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
-  obj := Matrix(k,1,3, [&+[ m[1] : m in mexps], &+[ m[2] : m in mexps], #mexps]);
+  //Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
+  //obj_fun:= BelyiObjectiveFunction(fuv);
+
+  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
+  mexps := [ Exponents(m[2]) : m in coefs_and_monomials ];
+  m:=#mexps;
+  coefs:=[ K!a[1] : a  in coefs_and_monomials ];
+  //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+  obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ] cat [m];
+  obj := Matrix(k,1,n+1, obj_coefs);
 
   //S is the prime divisors of all norms of numerators and denominators of coeffients
-  S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(fuv)]
-		 cat &cat[TrialDivision(Integers()!Norm(Denominator(s))) : s in Coefficients(fuv)];
+  S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(f) | s ne 0 ]
+		 cat &cat[TrialDivision(Integers()!Norm(Denominator(s))) : s in Coefficients(f) | s ne 0 ];
   //do we need a bound for trial division?
   S := SequenceToSet([s[1] : s in S]);
-  aa := 1*ZK;
-  bb := 1*ZK;
-  cc := 1*ZK;
-  rescaling_ideals:=[ [aa,bb,cc] ];
-
-  new_c := 1;
-  new_fuv:=fuv;
   SS:=&cat[ [pp[1] : pp in Factorization(p*Integers(K))] : p in S ];
 
+  rescaling_ideals:=[[ 1*ZK : i in [1..n+1] ]];
+  new_c := 1;
+  new_f:=f;
+
   for pp in SS do
-	  cvals := [ Valuation(c,pp) : c in coefs ];
+	  cvals := [ Valuation(c,pp) : c in coefs  ];
     //valuations at this prime pp of the coefficients
-    lhs := Matrix(k, [[mexps[i,1], mexps[i,2], 1] : i  in [1..#mexps]]); //constraints
+    lhs_coefs:= [ [ mexps[i,j] : j in [1..n] ] cat [1] : i in [1..m] ];
+    lhs := Matrix(k, lhs_coefs); //constraints
     rel := Matrix(k,[[1] : ef in mexps]);             //lhs greater than rhs
     rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
 
@@ -318,12 +358,12 @@ reducemodel_padic := function(fuv : Polyhedron:=false);
     poly:= &meet[ POL : POL in halfspaces ];
     //find the minimum of the objective function in the region, either using integral vertices or the linear program
     if Polyhedron eq false then
-      L := LPProcess(k, 3);
+      L := LPProcess(k, n+1);
       SetObjectiveFunction(L, obj);
       AddConstraints(L, lhs, rhs : Rel := "ge");
       //UnsetBounds(L) doesn't work
       //These are lower bounds on the solution
-      SetLowerBound(L, 1, -10000);  SetLowerBound(L, 2, -10000); SetLowerBound(L, 3, -10000);
+      for i in [1..n+1] do  SetLowerBound(L, i, k!-10000); end for;
       soln,state:=Solution(L);
       //ProfilePrintByTotalTime(:Max:=40);
       assert state eq 0;
@@ -333,15 +373,15 @@ reducemodel_padic := function(fuv : Polyhedron:=false);
       //&and[&and[IsIntegral(cvt) : cvt in Eltseq(vt)] : vt in vts_old];
       //vts := [ [ Ceiling(cvt) : cvt in Eltseq(vt)] : vt in vts];
       //ceiling?
-    else
-      int_poly := IntegralPart(poly);
-      vts:=Vertices(int_poly);
+    //else
+      //int_poly := IntegralPart(poly);
+      //vts:=Vertices(int_poly);
 
-      vertex_solns:=[];
-      for vt in vts do
-        Append(~vertex_solns, Evaluate(obj_fun,Eltseq(vt)));
-      end for;
-      min:=Minimum(vertex_solns);
+      //vertex_solns:=[];
+      //for vt in vts do
+        //Append(~vertex_solns, Evaluate(obj_fun,Eltseq(vt)));
+      //end for;
+      //min:=Minimum(vertex_solns);
     end if;
 
     //Now we intersect our polyhedron with the 'plane of minimal solutions'
@@ -367,21 +407,25 @@ reducemodel_padic := function(fuv : Polyhedron:=false);
     end if;
 
     //all triples of ideals to try rescaling by
-    rescaling_ideals:=&cat[ [ [ (ideals[i])*(pp^Eltseq(pt)[i]) : i in [1..3] ] : pt in points_loop ] : ideals in rescaling_ideals ];
+    rescaling_ideals:=&cat[ [ [ (ideals[i])*(pp^Eltseq(pt)[i]) : i in [1..#Eltseq(pt)] ] : pt in points_loop ] : ideals in rescaling_ideals ];
 
   end for;
 
   new_fuvs:=[];
   for vv in rescaling_ideals do
-    aprin, a := IsPrincipal(vv[1]);
-    if aprin eq false then a:=IdealShortVectorsProcess(vv[1], 0.00001, 2: Minkowski:=false)[1]; end if;
-    bprin, b := IsPrincipal(vv[2]);
-    if bprin eq false then b:=IdealShortVectorsProcess(vv[2], 0.00001, 2: Minkowski:=false)[1]; end if;
-    cprin, c := IsPrincipal(vv[3]);
-    if cprin eq false then c:=IdealShortVectorsProcess(vv[3], 0.00001, 2: Minkowski:=false)[1]; end if;
+    scaling_factors:= [ ];
+    for w in vv do
+      aprin, a := IsPrincipal(w);
+      if aprin eq false then a:=IdealShortVectorsProcess(w, 0.00001, 2: Minkowski:=false)[1]; end if;
+      Append(~scaling_factors, a);
+    end for;
 
-    guv:=Evaluate(new_fuv,[a*u,b*v])*c;
-    Append(~new_fuvs, <#Sprint(guv),guv,[a,b,c]>);
+    if n eq 1 then
+      guv:=Evaluate(new_f,scaling_factors[1]*variables[1])*scaling_factors[n+1];
+    else
+      guv:=Evaluate(new_f,[scaling_factors[i]*variables[i] : i in [1..n]])*scaling_factors[n+1];
+    end if;
+    Append(~new_fuvs, <#Sprint(guv),guv,scaling_factors>);
   end for;
 
   Sort(~new_fuvs);
