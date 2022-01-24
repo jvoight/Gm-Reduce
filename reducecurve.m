@@ -121,10 +121,6 @@ end function;
 //What is the difference in size from a divisor D and -D?
 //Whats the relationship between the size of the places, the multiplicity and the size of f?
 
-PlaneModel := function(phi,x_op);
-  return model(phi,x_op);
-end function;
-
 model := function(phi,x_op);
   //add 1/phi etc in here.
   fu := MinimalPolynomial(phi);
@@ -161,6 +157,10 @@ model := function(phi,x_op);
   _<t,x> := PolynomialRing(K,2);
   return Evaluate(fuv,[x,t,0]);
   //x=v, t=u
+end function;
+
+PlaneModel := function(phi,x_op);
+  return model(phi,x_op);
 end function;
 
 function PlaneModelGroebner(phi, x_op)
