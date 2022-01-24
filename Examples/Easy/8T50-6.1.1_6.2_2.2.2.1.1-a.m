@@ -1,4 +1,5 @@
 load "reducecurve.m";
+Attach("monomials.m");
 
 // Belyi maps downloaded from the LMFDB on 21 January 2022.
 // Magma code for Belyi map with label 8T50-6.1.1_6.2_2.2.2.1.1-a
@@ -8,6 +9,7 @@ load "reducecurve.m";
 // Define the base field
 R<T> := PolynomialRing(Rationals());
 K<nu> := NumberField(R![-16, -6, 0, 1]);
+OK := Integers(K);
 
 // Define the curve
 X := Curve(ProjectiveSpace(PolynomialRing(K, 2)));
@@ -18,8 +20,19 @@ phi := (1/481555322138015200*(493227617344194*nu^2-8409605121382299*nu+625898368
 print "phi has divisor";
 Support(Divisor(phi));
 
-RsandPs := Support(Divisor(phi));
-RsandQs := Support(Divisor(phi-1));
+/*
+  RsandPs := Support(Divisor(phi));
+  RsandQs := Support(Divisor(phi-1));
+  PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
+  printf "ramification points = %o\n", PsQsRs;
+*/
+
+P := ideal< OK | OK![9973, 0, 0], OK![194, 1, 0] >;
+printf "reducing mod P = %o\n", P;
+
+X_FF, phi_FF := ReduceBelyiMap(X, phi, P);
+RsandPs := Support(Divisor(phi_FF));
+RsandQs := Support(Divisor(phi_FF-1));
 PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 printf "ramification points = %o\n", PsQsRs;
 
@@ -28,8 +41,17 @@ xs := SmallFunctions(PsQsRs, 2);
 for x_op in xs do
   pts, mults := Support(Divisor(x_op));
   printf "x_op has support\n%o,\n %o\n", pts, mults;
-  time F_res := PlaneModel(phi, x_op);
+  print "computing plane model";
+  time F_res := PlaneModel(phi_FF, x_op);
   print F_res;
   print Monomials(F_res);
+  /*
+    print "p-adic reduction";
+    time F_red_p := reducemodel_padic(F_res);
+    print "unit reduction";
+    time F_red_unit := reducemodel_units(F_red_p);
+    print F_red_unit;
+    print Monomials(F_red_unit);
+  */
   print "-------------------------------------";
 end for;
