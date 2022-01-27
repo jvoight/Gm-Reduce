@@ -303,13 +303,16 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
   k:=Integers();
 
 
-  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
+  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 and Exponents(Monomials(f)[i]) ne [0 : k in [1..n]] ];
   mexps := [ Exponents(m[2]) : m in coefs_and_monomials ];
   m:=#mexps;
   coefs:=[ K!a[1] : a  in coefs_and_monomials ];
   //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
   obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ];
   obj := Matrix(k,1,n, obj_coefs);
+  lhs_coefs:= mexps;
+  lhs := Matrix(k, lhs_coefs);     //constraints
+  rel := Matrix(k,[[1] : ef in mexps]);  //lhs greater than rhs
 
   //S is the prime divisors of all norms of numerators and denominators of coeffients
   S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(f) | s ne 0 ]
@@ -323,11 +326,8 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
   new_f:=f;
 
   for pp in SS do
+
 	  cvals := [ Valuation(c,pp) : c in coefs  ];
-    //valuations at this prime pp of the coefficients
-    lhs_coefs:= [ [ mexps[i,j] : j in [1..n] ] : i in [1..m] ];
-    lhs := Matrix(k, lhs_coefs); //constraints
-    rel := Matrix(k,[[1] : ef in mexps]);             //lhs greater than rhs
     rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
 
     halfspaces:=[ HalfspaceToPolyhedron(Eltseq(Rows(lhs)[i]),Eltseq(rhs)[i]) : i in [1..#Rows(lhs)] ];
@@ -383,32 +383,52 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
 
   end for;
 
-  new_fuvs:=[];
+  all_rescalings_ab:=[];
   for vv in rescaling_ideals do
     scaling_factors:= [ ];
     for w in vv do
       aprin, a := IsPrincipal(w);
       if aprin eq false then
-        a:=IdealShortVectorsProcess(w, 0, 2: Minkowski:=Minkowski)[1]; end if;
-      // JV: This keeps only the smallest one; but isn't it possible that the
-      // one giving the smallest polynomial isn't the shortest but is only short
-      // and one of the first ones on the list?  Shouldn't we try them out?
-      Append(~scaling_factors, a);
+        a:=IdealShortVectorsProcess(w, 0, 2: Minkowski:=Minkowski);
+      else
+        a:=[a];
+      end if;
+      Append(~scaling_factors,a);
     end for;
 
-    guv:=Evaluate(new_f,[scaling_factors[i]*variables[i] : i in [1..n]]);
+    all_lists:=[scaling_factors[1]];
+    i:=1;
+    while i lt n do
+      for list in all_lists do
+        for elt in scaling_factors[i+1] do
+          Append(~all_lists,list cat [elt]);
+        end for;
+        Exclude(~all_lists,list);
+        i:=i+1;
+      end for;
+    end while;
+    Append(~all_rescalings_ab,all_lists);
+    end for;
+    all_rescalings_ab:=&cat(all_rescalings_ab);
 
-    // JV: possibly redundantly, clear denominators one last time
-    jj := (ideal<ZK | Coefficients(guv)>)^-1;
-    jprinbl, j := IsPrincipal(jj);
-    if not jprinbl then
-      j := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski)[1];
-      // JV: same comment as above
-    end if;
-    guv *:= j;
-    scaling_factors := scaling_factors cat [j];
+    new_fuvs:=[];
+    for ab in all_rescalings_ab do
+      guv:=Evaluate(new_f,[ab[i]*variables[i] : i in [1..n]]);
+      // JV: possibly redundantly, clear denominators one last time
+      jj := (ideal<ZK | Coefficients(guv)>)^-1;
+      jprinbl, j := IsPrincipal(jj);
+      if not jprinbl then
+        js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
+      else
+        js:=[j];
+      end if;
 
-    Append(~new_fuvs, <#Sprint(guv),guv,scaling_factors>);
+      for j in js do
+        guv *:= j;
+        Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
+      end for;
+    end for;
+
   end for;
 
   Sort(~new_fuvs);
