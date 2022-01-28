@@ -1,6 +1,6 @@
-//AttachSpec("~/github/endomorphisms/endomorphisms/magma/spec"); // have to change if endomorphisms repo is elsewhere
 AttachSpec("../endomorphisms/endomorphisms/magma/spec"); // have to change if endomorphisms repo is elsewhere
 AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+// includes intrinsic S3Action(tau, phi)
 
 /*
   OK := Integers(K);

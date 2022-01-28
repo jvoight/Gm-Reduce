@@ -80,7 +80,6 @@ intrinsic SmallFunction(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
   //The "small" points are the support of phi, phi-1.
   //sort "small" points by degree
   Qs := Sort(Qs, func<Q,R | Degree(Q)-Degree(R)>);
-
   Ds := [];
   QDs := [Divisor(Q) : Q in Qs]; //Make the points into divisors
   newDs := [Universe(QDs) | 0];
