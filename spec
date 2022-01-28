@@ -1,0 +1,4 @@
+{
+  reducecurve.m
+  monomials.m
+}
