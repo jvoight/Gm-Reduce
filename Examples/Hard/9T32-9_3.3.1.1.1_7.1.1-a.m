@@ -1,4 +1,4 @@
-load "../../reducecurve.m";
+//load "reducecurve.m";
 
 // Belyi maps downloaded from the LMFDB on 21 January 2022.
 // Magma code for Belyi map with label 9T32-9_3.3.1.1.1_7.1.1-a
@@ -8,6 +8,7 @@ load "../../reducecurve.m";
 // Define the base field
 R<T> := PolynomialRing(Rationals());
 K<nu> := NumberField(R![28, 6, 9, -2, -6, 0, 1]);
+OK := Integers(K);
 
 // Define the curve
 S<x> := PolynomialRing(K);
@@ -23,6 +24,17 @@ RsandPs := Support(Divisor(phi));
 RsandQs := Support(Divisor(phi-1));
 PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 printf "ramification points = %o\n", PsQsRs;
+
+// make finite field version
+P := ideal< OK | OK![97, 0, 0, 0, 0, 0], OK![3, 1, 0, 0, 0, 0] >;
+printf "reducing mod P = %o\n", P;
+X_FF, phi_FF := ReduceBelyiMap(X, phi, P);
+RsandPs_FF := Support(Divisor(phi_FF));
+RsandQs_FF := Support(Divisor(phi_FF-1));
+PsQsRs_FF := SetToSequence(SequenceToSet(RsandPs_FF cat RsandQs_FF));
+printf "ramification points of reduction = %o\n", PsQsRs_FF;
+
+// matching up the PsQsRs and PsQsRs_FF is not so easy... :S
 
 print "computing small functions supported at points above";
 xs := SmallFunctions(PsQsRs, 2);

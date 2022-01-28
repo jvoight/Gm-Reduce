@@ -327,7 +327,7 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
 
   for pp in SS do
 
-	  cvals := [ Valuation(c,pp) : c in coefs  ];
+    cvals := [ Valuation(c,pp) : c in coefs  ];
     rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
 
     halfspaces:=[ HalfspaceToPolyhedron(Eltseq(Rows(lhs)[i]),Eltseq(rhs)[i]) : i in [1..#Rows(lhs)] ];
@@ -408,7 +408,6 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
       end for;
     end while;
     Append(~all_rescalings_ab,all_lists);
-    end for;
     all_rescalings_ab:=&cat(all_rescalings_ab);
 
     new_fuvs:=[];
@@ -428,7 +427,6 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
         Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
       end for;
     end for;
-
   end for;
 
   Sort(~new_fuvs);
