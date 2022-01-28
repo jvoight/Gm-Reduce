@@ -38,10 +38,22 @@ printf "ramification points of reduction = %o\n", PsQsRs_FF;
 
 print "computing small functions supported at points above";
 xs := SmallFunctions(PsQsRs, 2);
-for x_op in xs do
+_, xs_FF := [ReduceBelyiMap(X, el, P) : el in xs];
+//for i := 1 to #xs do
+for i := 1 to 2 do
+  x_op := xs[i];
+  x_op_FF := xs_FF[i];
   pts, mults := Support(Divisor(x_op));
-  printf "x_op has support\n%o,\n %o\n", pts, mults;
-  time F_res := PlaneModel(phi, x_op);
-  print F_res;
+  //printf "x_op has support\n%o,\n %o\n", pts, mults;
+  print "computing model over finite field";
+  F_res_FF := PlaneModel(phi_FF, x_op_FF);
+  mons_FF := Monomials(F_res_FF);
+  printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
+  print "now computing in char 0";
+  t0 := Cputime();
+  F_res := PlaneModel(phi, x_op);
+  t1 := Cputime();
+  printf "computing plane model took %o\n", t1-t0;
+  //print F_res;
   print "-------------------------------------";
 end for;
