@@ -1,5 +1,6 @@
-AttachSpec("code/spec_database");
-load "../Gm-Reduce/reducecurve.m";
+//AttachSpec("code/spec_database");
+//load "../Gm-Reduce/reducecurve.m";
+AttachSpec("spec");
 
 F<g> := NumberField(Polynomial([8,-10,9,1,1]));
 X := Curve(ProjectiveSpace(PolynomialRing(F, 2)));
@@ -24,7 +25,7 @@ RsandQs := Support(Divisor(phi-1));
 PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 //xs := SmallFunctions(PsQsRs, 2*Genus(X)+1);
 //"The number of small functions is"; #xs;
-small_functions:=SmallFunctions(PsQsRs, 2);
+small_functions:=SmallFunctions(PsQsRs, 1);
 
 SetProfile(true);
 ffs:=[];
@@ -36,7 +37,7 @@ for xx in small_functions do
   //try 1/phi etc
   S3orbit:=[ phi, 1/phi, 1-phi, phi/(phi-1), 1-1/phi, 1/(1-phi)  ];
   for belyimap in S3orbit do
-    f := model(belyimap, xx);
+    f := model(belyimap, xx); f;
 
     Append(~ffs,<#Sprint(f),f, Index(S3orbit, belyimap), Degree(xx) >);
     sup,mult:=Support(Divisor(xx));

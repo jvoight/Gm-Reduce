@@ -1,6 +1,6 @@
 SetClassGroupBounds("GRH");
 
-intrinsic IdealShortVectorsProcess(I::RngOrdIdl, l::RngIntElt, u::RngIntElt : Minkowski:=true, timeout:=2) -> SeqEnum
+intrinsic IdealShortVectorsProcess(I::RngOrdFracIdl, l::RngIntElt, u::RngIntElt : Minkowski:=true, timeout:=2) -> SeqEnum
   {Given an ideal I, thought of as a lattice, and integers l and u, return vectors in the lattice bounded by l and u scaled by a medium sized vector in parallelepiped.}
   //l,u are size in which to search over lattice, scaled by a medium sized vector in parallelepiped.
   if Degree(NumberField(Order(I))) gt 1 then
@@ -71,7 +71,7 @@ intrinsic IdealShortVectorsProcess(I::RngOrdIdl, l::RngIntElt, u::RngIntElt : Mi
   end if;
 end intrinsic;
 
-intrinsic SmallFunction(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
+intrinsic SmallFunctions(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
   {Given a sequence of points Qs, return functions supported on Qs of degree <= d}
   // Qs, points which are "small"
   // d, a degree bound; what d does genus 2 need?
@@ -170,7 +170,7 @@ intrinsic ReduceModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolE
   {}
   f_plane:=model(phi,x_op);
   f_padic := reducemodel_padic(f_plane);
-  f_unit := reducemodel_unit(f_padic);
+  f_unit := reducemodel_units(f_padic);
   return f_unit;
 end intrinsic;
 
@@ -443,7 +443,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : Polyhedron:=false, Minkowski:=true) 
 end intrinsic;
 
 
-intrinsic reducemodel_units(fuv::RngMPolElt : Polyhedron:=false) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units(fuv::RngMPolElt : Polyhedron:=false, prec:=100) -> RngMPolElt, SeqEnum
   {}
   K := BaseRing(Parent(fuv));
   u := Parent(fuv).1;
@@ -465,10 +465,10 @@ intrinsic reducemodel_units(fuv::RngMPolElt : Polyhedron:=false) -> RngMPolElt, 
   UK,mUK:=UnitGroup(K);
   // k1:=RealField(20);
   // JV: use real field same bit size as Magma's Minkowski output
-  k1 := BaseField(M);
+  k1 := RealField(prec);
   UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
 
-	N:=#mexps*Dimension(M);
+	N:=#mexps*(r+s);
 	L1 := LPProcess(k1, 3*#UU+N);
 	obj1:=Matrix(k1,1,3*#UU+N,[0 : i in [1..3*#UU]] cat [1 : i in [1..N]]);
 	SetObjectiveFunction(L1, obj1);
@@ -480,7 +480,7 @@ intrinsic reducemodel_units(fuv::RngMPolElt : Polyhedron:=false) -> RngMPolElt, 
 
 		for m in [1..r+s] do
 			extra_var1:=[ 0 : k in [1..N-1] ];
-			Insert(~extra_var1, (n-1)*Dimension(M) +m, -1);
+			Insert(~extra_var1, (n-1)*(r+s) +m, -1);
 
 			phi_eps:=[ phi(e)[m] : e in UU ];
 			lhs1:= Matrix(k1,1,3*#UU+N, &cat[ [ mexps[n,1]*log_eps, mexps[n,2]*log_eps, log_eps] : log_eps in phi_eps ] cat extra_var1);

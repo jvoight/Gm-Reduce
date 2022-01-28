@@ -7,6 +7,7 @@
   X; phi;
 */
 
+AttachSpec("spec");
 K<nu> := ext<K|Polynomial(K, [-10, 0, 1])> where K is RationalField();
 X := EllipticCurve([ 0, 0, 0, 1/46875*(-15884032*nu - 50229689), 1/52734375*(515007865088*nu + 1628597868634) ]);
 KX<x,y> := FunctionField(X);
@@ -23,8 +24,8 @@ multiplicities:=[];
 support:=[];
 for xx in SmallFunctions(PsQsRs, 2*Genus(X)+1) do
   S3orbit:=[ phi, 1/phi, phi-1, 1/(phi-1), 1/phi -1 ];
-  for belyimap in S3orbit do
-    f := model(belyimap, xx);
+  for belyimap in [S3orbit[1]] do
+    f := ReduceModel(belyimap, xx); f;
     Append(~ffs,<#Sprint(f),f, Index(S3orbit, belyimap), Degree(xx) >);
     sup,mult:=Support(Divisor(xx));
     Append(~support, mult);
