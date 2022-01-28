@@ -5,7 +5,7 @@ IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
   if Degree(NumberField(Order(I))) gt 1 then
     if Minkowski eq true then
       Ibasis:=Basis(I);
-      IxDen:=&*[ pp[1]^pp[2] : pp in Factorization(I*Denominator(I)) ];
+      IxDen := Order(I)!!(I*Denominator(I));
       IxDen_gens,mxDen:=MinkowskiLattice(IxDen);
       Igens:=IxDen_gens/Denominator(I);
       BI:=Basis(Igens);
@@ -28,6 +28,7 @@ IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
       min_vec:=Min(LWB);
       avg_vec:=Determinant(LWB)^(1/(dimL));
       //EC:=EnumerationCost(LWB20, 10*Sqrt(avg_vec));
+      if l eq 0 then l +:= Rprec!10^(-prec); end if;
       SVP:=ShortVectorsProcess(LWB, avg_vec*l, avg_vec*u);
 
       SV:=[];
@@ -38,12 +39,13 @@ IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
       t:=Realtime(); //set a timeout
       SVcoord :=[];
       for w in SV do
-        while Realtime(t) lt timeout do
-          Append(~SVcoord, [ Round(c) : c in Eltseq(w) ]);
-        end while;
+        Append(~SVcoord, [ Round(c) : c in Eltseq(w) ]);
+        if Realtime(t) gt timeout then
+          break;
+        end if;
       end for;
 
-      SIelts := [ &+[w[i]*Ibasis[i] : i in [1..#Ibasis]] : w in SVcoord ] cat [1];
+      SIelts := [ &+[w[i]*Ibasis[i] : i in [1..#Ibasis]] : w in SVcoord ];
       //assert something to make sure there was no precision error
       return SIelts;
 
@@ -51,6 +53,7 @@ IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
       Igens := LLLBasis(I);
       // assert [ A/Denominator(I) : A in LLLBasis(I*Denominator(I)) ] eq Igens;
       Zn :=StandardLattice(#Igens);
+      if l eq 0 then l := 1; end if;  // integral lattice, so
       SVP:=ShortVectorsProcess(Zn, Ceiling(l),Ceiling(u));
       SV:=[];
       while not(IsEmpty(SVP)) do
@@ -203,25 +206,12 @@ function PlaneModelGroebner(phi, x_op)
   return h_plane(new_eqn);
 end function;
 
-//What's the relationship between #model and #reduced_model? pretty much linear it would seem
-
-//Pord<t1,x1>:=PolynomialRing(BaseRing(Parent(fuv)),2);
-//Pord2<t2,x2>:=PolynomialRing(K,2: lex);
 
 CoefficientValuationsSum:=function(f,pp)
   return &+[ Valuation(a,pp) : a in Coefficients(f) ],
   [ Valuation(a,pp) : a in Coefficients(f) ];
 end function;
 
-/*
-  ZK:=Integers(K);
-  LZK:=LLL(ZK);
-  P5<b1,b2,b3,b4,b5>:=PolynomialRing(Rationals(),5);
-  P5vars:=[b1,b2,b3,b4,b5];
-  fuv_coefs:=Coefficients(fuv);
-  [ &+[ P5vars[i]*cc[i] : i in [1..#P5vars] ] : cc in [ LZK!d : d in fuv_coefs ] ];
-  P5xt<x,t>:=PolynomialRing(P5,2);
-*/
 
 BelyiObjectiveFunction:=function(fuv)
   K := BaseRing(Parent(fuv));
@@ -244,25 +234,19 @@ MultivariateToUnivariate:=function(f)
 end function;
 
 
-MonicToIntegral:=function(f);
+MonicToIntegral:=function(f:Minkowski := true);
   //scale the monic univariate polynomial to be integral
   assert IsMonic(f);
   K:=BaseRing(Parent(f));
   ZK:=Integers(K);
   coefs:=[ a : a in Coefficients(f) | a ne 0 ];
-  pps:=[ a[1] : a in Factorization(&*coefs*ZK) ];
-  scale:=1*ZK;
-  for pp in pps do
-    vals:=[ Valuation(cc,pp) : cc in coefs ];
-    min:=Min(vals);
-    scale:=scale*pp^(-min);
-  end for;
 
-  aprin, a := IsPrincipal(scale);
-  if aprin eq false then a:=IdealShortVectorsProcess(scale, 0.00001, 2: Minkowski:=false)[1]; end if;
+  aa := ideal<ZK | coefs>^-1;
+  aprin, a := IsPrincipal(aa);
+  if aprin eq false then a:=IdealShortVectorsProcess(aa, 0, 2: Minkowski:=Minkowski)[1]; end if;
   f_new:=f*a;
 
-  return f_new, 1/a;
+  return f_new, a;
 end function;
 
 
@@ -280,29 +264,23 @@ PolynomialToFactoredString:=function(f)
       str:=str cat " + ";
     end if;
 
-    if Degree(coefs[j]) ne 0 then
-      a:=LeadingCoefficient(coefs[j]);
-      fac:=Factorization(coefs[j]);
-      list:=[];
-      for item in fac do
-        int,co:= MonicToIntegral(item[1]);
-        Append(~list,<co,int,item[2]>);
-      end for;
+		a:=LeadingCoefficient(coefs[j]);
+		fac:=Factorization(coefs[j]);
+		list:=[];
+		for item in fac do
+			int,co:= MonicToIntegral(item[1]);
+			Append(~list,<co,int,item[2]>);
+      a /:= co^item[2];
+		end for;
 
-      c:=a*(&*[b[1] : b in list]);
-      str:= str cat Sprintf("(%o)",c);
-      for i in [1..#list] do
-        str:= str cat Sprintf("*(%o)^%o", list[i,2],list[i,3]);
-      end for;
-
-    else
-      str:=str cat Sprint(coefs[j]);
-    end if;
+		str:= str cat Sprintf("(%o)",a);
+		for i in [1..#list] do
+			str:= str cat Sprintf("*(%o)^%o", list[i,2],list[i,3]);
+		end for;
 
     if j ne 1 then
       str:=str cat Sprintf("*%o",mon[j]);
     end if;
-
   end for;
 
   K<nu1>:=BaseRing(BaseRing(f));
@@ -315,7 +293,7 @@ end function;
 
 
 
-reducemodel_padic := function(f : Polyhedron:=false);
+reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
   //input: a multivariate polynomial f \in K[z_1,..,z_n]
   //output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]
   K := BaseRing(Parent(f));
@@ -324,16 +302,17 @@ reducemodel_padic := function(f : Polyhedron:=false);
   ZK := Integers(K);
   k:=Integers();
 
-  //Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
-  //obj_fun:= BelyiObjectiveFunction(fuv);
 
-  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
+  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 and Exponents(Monomials(f)[i]) ne [0 : k in [1..n]] ];
   mexps := [ Exponents(m[2]) : m in coefs_and_monomials ];
   m:=#mexps;
   coefs:=[ K!a[1] : a  in coefs_and_monomials ];
   //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
-  obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ] cat [m];
-  obj := Matrix(k,1,n+1, obj_coefs);
+  obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ];
+  obj := Matrix(k,1,n, obj_coefs);
+  lhs_coefs:= mexps;
+  lhs := Matrix(k, lhs_coefs);     //constraints
+  rel := Matrix(k,[[1] : ef in mexps]);  //lhs greater than rhs
 
   //S is the prime divisors of all norms of numerators and denominators of coeffients
   S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(f) | s ne 0 ]
@@ -347,32 +326,25 @@ reducemodel_padic := function(f : Polyhedron:=false);
   new_f:=f;
 
   for pp in SS do
+
 	  cvals := [ Valuation(c,pp) : c in coefs  ];
-    //valuations at this prime pp of the coefficients
-    lhs_coefs:= [ [ mexps[i,j] : j in [1..n] ] cat [1] : i in [1..m] ];
-    lhs := Matrix(k, lhs_coefs); //constraints
-    rel := Matrix(k,[[1] : ef in mexps]);             //lhs greater than rhs
     rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
 
     halfspaces:=[ HalfspaceToPolyhedron(Eltseq(Rows(lhs)[i]),Eltseq(rhs)[i]) : i in [1..#Rows(lhs)] ];
     poly:= &meet[ POL : POL in halfspaces ];
     //find the minimum of the objective function in the region, either using integral vertices or the linear program
     if Polyhedron eq false then
-      L := LPProcess(k, n+1);
+      L := LPProcess(k, n);
       SetObjectiveFunction(L, obj);
       AddConstraints(L, lhs, rhs : Rel := "ge");
       //UnsetBounds(L) doesn't work
       //These are lower bounds on the solution
-      for i in [1..n+1] do  SetLowerBound(L, i, k!-10000); end for;
+      for i in [1..n] do  SetLowerBound(L, i, k!-10000); end for;
       soln,state:=Solution(L);
       //ProfilePrintByTotalTime(:Max:=40);
       assert state eq 0;
       min:=EvaluateAt(L,soln);
 
-      //assert [Eltseq(r) : r in Rays(InfinitePart(int_poly_old))] eq [[0,1],[1,0]] or
-      //&and[&and[IsIntegral(cvt) : cvt in Eltseq(vt)] : vt in vts_old];
-      //vts := [ [ Ceiling(cvt) : cvt in Eltseq(vt)] : vt in vts];
-      //ceiling?
     //else
       //int_poly := IntegralPart(poly);
       //vts:=Vertices(int_poly);
@@ -398,7 +370,7 @@ reducemodel_padic := function(f : Polyhedron:=false);
     //find the points which give something principal
     Cl,h:=ClassGroup(K); hin:=Inverse(h);
     prin:=Order(hin(pp));
-    principal_points := [ vv : vv in min_points | [ IsDivisibleBy(a,prin) : a  in Eltseq(vv) ] eq [true,true,true] ];
+    principal_points := [ vv : vv in min_points | [ IsDivisibleBy(a,prin) : a  in Eltseq(vv) ] eq [true,true] ];
 
     if principal_points eq [] then
       points_loop := min_points; principal:=false;
@@ -411,21 +383,52 @@ reducemodel_padic := function(f : Polyhedron:=false);
 
   end for;
 
-  new_fuvs:=[];
+  all_rescalings_ab:=[];
   for vv in rescaling_ideals do
     scaling_factors:= [ ];
     for w in vv do
       aprin, a := IsPrincipal(w);
-      if aprin eq false then a:=IdealShortVectorsProcess(w, 0.00001, 2: Minkowski:=false)[1]; end if;
-      Append(~scaling_factors, a);
+      if aprin eq false then
+        a:=IdealShortVectorsProcess(w, 0, 2: Minkowski:=Minkowski);
+      else
+        a:=[a];
+      end if;
+      Append(~scaling_factors,a);
     end for;
 
-    if n eq 1 then
-      guv:=Evaluate(new_f,scaling_factors[1]*variables[1])*scaling_factors[n+1];
-    else
-      guv:=Evaluate(new_f,[scaling_factors[i]*variables[i] : i in [1..n]])*scaling_factors[n+1];
-    end if;
-    Append(~new_fuvs, <#Sprint(guv),guv,scaling_factors>);
+    all_lists:=[scaling_factors[1]];
+    i:=1;
+    while i lt n do
+      for list in all_lists do
+        for elt in scaling_factors[i+1] do
+          Append(~all_lists,list cat [elt]);
+        end for;
+        Exclude(~all_lists,list);
+        i:=i+1;
+      end for;
+    end while;
+    Append(~all_rescalings_ab,all_lists);
+    end for;
+    all_rescalings_ab:=&cat(all_rescalings_ab);
+
+    new_fuvs:=[];
+    for ab in all_rescalings_ab do
+      guv:=Evaluate(new_f,[ab[i]*variables[i] : i in [1..n]]);
+      // JV: possibly redundantly, clear denominators one last time
+      jj := (ideal<ZK | Coefficients(guv)>)^-1;
+      jprinbl, j := IsPrincipal(jj);
+      if not jprinbl then
+        js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
+      else
+        js:=[j];
+      end if;
+
+      for j in js do
+        guv *:= j;
+        Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
+      end for;
+    end for;
+
   end for;
 
   Sort(~new_fuvs);
@@ -447,54 +450,59 @@ reducemodel_units := function(fuv : Polyhedron:=false);
   coefs:=Coefficients(fuv);
   assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
 
-  k1:=RealField(20);
   UK,mUK:=UnitGroup(K);
   M,phi:=MinkowskiSpace(K);
+  // k1:=RealField(20);
+  // JV: use real field same bit size as Magma's Minkowski output
+  k1 := BaseField(M);
   UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
 
-    N:=#mexps*Dimension(M);
-    L1 := LPProcess(k1, 3*#UU+N);
-    obj1:=Matrix(k1,1,3*#UU+N,[0 : i in [1..3*#UU]] cat [1 : i in [1..N]]);
-    SetObjectiveFunction(L1, obj1);
+	N:=#mexps*Dimension(M);
+	L1 := LPProcess(k1, 3*#UU+N);
+	obj1:=Matrix(k1,1,3*#UU+N,[0 : i in [1..3*#UU]] cat [1 : i in [1..N]]);
+	SetObjectiveFunction(L1, obj1);
 
-    for n in [1..#mexps] do
-      alpha_norm:=Log(Abs(Norm(coefs[n])))/(Dimension(M));
-      log_coef:= [ Log(Abs(alpha)) : alpha in Eltseq(phi(coefs[n])) ];
-      for m in [1..Dimension(M)] do
-        extra_var1:=[ 0 : k in [1..N-1] ];
-        Insert(~extra_var1, (n-1)*Dimension(M) +m, -1);
+	for n in [1..#mexps] do
+    // JV: gives a bug because coefs[n] is a sequence of real numbers, and
+    // the intention was to take complex numbers here.
+    // What does the norm do, when it's already a real number that you'll take Abs of?
+		alpha_norm:=Log(Abs(Norm(coefs[n])))/(Dimension(M));
+		log_coef:= [ Log(Abs(alpha)) : alpha in Eltseq(phi(coefs[n])) ];
+		for m in [1..Dimension(M)] do
+			extra_var1:=[ 0 : k in [1..N-1] ];
+			Insert(~extra_var1, (n-1)*Dimension(M) +m, -1);
 
-        phi_eps:= [ Log(Abs(Eltseq(phi(e))[m])) : e in UU ];
-        lhs1:= Matrix(k1,1,3*#UU+N, &cat[ [ mexps[n,1]*log_eps, mexps[n,2]*log_eps, log_eps] : log_eps in phi_eps ] cat extra_var1);
-        lhs2:= Matrix(k1,1,3*#UU+N, &cat[ [ -mexps[n,1]*log_eps, -mexps[n,2]*log_eps, -log_eps] : log_eps in phi_eps ] cat extra_var1);
+			phi_eps:= [ Log(Abs(Eltseq(phi(e))[m])) : e in UU ];
+			lhs1:= Matrix(k1,1,3*#UU+N, &cat[ [ mexps[n,1]*log_eps, mexps[n,2]*log_eps, log_eps] : log_eps in phi_eps ] cat extra_var1);
+			lhs2:= Matrix(k1,1,3*#UU+N, &cat[ [ -mexps[n,1]*log_eps, -mexps[n,2]*log_eps, -log_eps] : log_eps in phi_eps ] cat extra_var1);
 
-        rhs1:= Matrix(k1,[[-log_coef[m] + alpha_norm]]);
-        rhs2:= Matrix(k1,[[log_coef[m] - alpha_norm]]);
+			rhs1:= Matrix(k1,[[-log_coef[m] + alpha_norm]]);
+			rhs2:= Matrix(k1,[[log_coef[m] - alpha_norm]]);
 
-        AddConstraints(L1, lhs1, rhs1 : Rel := "le");
-        AddConstraints(L1, lhs2, rhs2 : Rel := "le");
+			AddConstraints(L1, lhs1, rhs1 : Rel := "le");
+			AddConstraints(L1, lhs2, rhs2 : Rel := "le");
 
-        AddConstraints(L1, Matrix(k1,1,3*#UU+N, [0 : i in [1..3*#UU]] cat extra_var1), Matrix(k1,[[0]]) : Rel :="le");
+			AddConstraints(L1, Matrix(k1,1,3*#UU+N, [0 : i in [1..3*#UU]] cat extra_var1), Matrix(k1,[[0]]) : Rel :="le");
 
-      end for;
-    end for;
+		end for;
+	end for;
 
-    for i in [1..3*#UU+N] do
-      SetLowerBound(L1, i, k1!-10000);
-    end for;
-    soln,state:=Solution(L1);
-    //ProfilePrintByTotalTime(:Max:=40);
-    assert state eq 0;
+	for i in [1..3*#UU+N] do
+		SetLowerBound(L1, i, k1!-10000);
+	end for;
+	soln,state:=Solution(L1);
+	//ProfilePrintByTotalTime(:Max:=40);
+	assert state eq 0;
 
-    eps_soln:=[ Eltseq(soln)[i] : i in [1..3*#UU] ];
-    eps_rounded:= [ Integers()!Round(e) : e in eps_soln ];
-    a:= &*[ UU[j]^eps_rounded[1+3*(j-1)] : j in [1..#UU] ];
-    b:= &*[ UU[j]^eps_rounded[2+3*(j-1)] : j in [1..#UU] ];
-    c:= &*[ UU[j]^eps_rounded[3+3*(j-1)] : j in [1..#UU] ];
+	eps_soln:=[ Eltseq(soln)[i] : i in [1..3*#UU] ];
+	eps_rounded:= [ Integers()!Round(e) : e in eps_soln ];
+	a:= &*[ UU[j]^eps_rounded[1+3*(j-1)] : j in [1..#UU] ];
+	b:= &*[ UU[j]^eps_rounded[2+3*(j-1)] : j in [1..#UU] ];
+	c:= &*[ UU[j]^eps_rounded[3+3*(j-1)] : j in [1..#UU] ];
 
-    guv:=Evaluate(fuv,[a*u,b*v])*c;
+	guv:=Evaluate(fuv,[a*u,b*v])*c;
 
-    return guv, [a,b,c];
+	return guv, [a,b,c];
 end function;
 
 reducemodel_old := function(fuv : Polyhedron:=false);
