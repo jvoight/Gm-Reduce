@@ -1,3 +1,4 @@
+AttachSpec("~/github/endomorphisms/endomorphisms/magma/spec"); // have to change if endomorphisms repo is elsewhere
 /*
   OK := Integers(K);
   dens := [];
