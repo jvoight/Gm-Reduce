@@ -160,12 +160,18 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   //return Evaluate(fuv,[v,u,0]);
   _<t,x> := PolynomialRing(K,2);
   f_plane:=Evaluate(fuv,[x,t,0]);
-  f_padic := reducemodel_padic(f_plane);
-  f_unit := reducemodel_unit(f_padic);
   //f_univ:=MultivariateToUnivariate(f_unit);
   //f_display:=PolynomialToFactoredString(f_univ);
-  return f_unit;
+  return f_plane;
   //x=v, t=u
+end intrinsic;
+
+intrinsic ReduceModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
+  {}
+  f_plane:=model(phi,x_op);
+  f_padic := reducemodel_padic(f_plane);
+  f_unit := reducemodel_unit(f_padic);
+  return f_unit;
 end intrinsic;
 
 intrinsic PlaneModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
