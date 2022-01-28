@@ -24,7 +24,7 @@ RsandQs := Support(Divisor(phi-1));
 PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 //xs := SmallFunctions(PsQsRs, 2*Genus(X)+1);
 //"The number of small functions is"; #xs;
-small_functions:=SmallFunctions(PsQsRs, 1);
+small_functions:=SmallFunctions(PsQsRs, 2);
 
 SetProfile(true);
 ffs:=[];
@@ -41,6 +41,7 @@ for xx in small_functions do
     Append(~ffs,<#Sprint(f),f, Index(S3orbit, belyimap), Degree(xx) >);
     sup,mult:=Support(Divisor(xx));
     Append(~support, mult);
+    //insert reduction into model
   end for;
 end for;
 ParallelSort(~ffs,~support);

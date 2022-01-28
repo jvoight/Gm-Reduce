@@ -71,225 +71,11 @@ IdealShortVectorsProcess:=function(I, l, u : Minkowski:=true, timeout:=2);
 
 end function;
 
-function SmallFunctions(Qs, d)
-
-  //        Qs, points which are "small"
-  //        d, a degree bound; what d does genus 2 need?
-  // Output: functions supported on {Qs} of degree <= d
-
-  //The "small" points are the support of phi, phi-1.
-  //sort "small" points by degree
-  Qs := Sort(Qs, func<Q,R | Degree(Q)-Degree(R)>);
-
-  Ds := [];
-  QDs := [Divisor(Q) : Q in Qs]; //Make the points into divisors
-  newDs := [Universe(QDs) | 0];
-
-  //add divisors so that degree is <= d and collect in Ds
-  while #newDs ne 0 do
-    frontierDs := [];
-    for newD in newDs do
-      dnewD := Degree(newD);
-      for RD in QDs do
-        if Degree(RD) + dnewD le d then
-          Append(~Ds, RD + newD);
-          Append(~frontierDs, RD + newD);
-        end if;
-      end for;
-    end for;
-    newDs := frontierDs;
-  end while;
-  Ds:=Setseq(Set(Ds));
-
-  xs := [];
-  for Dden in Ds do
-    for Dnum in Ds do
-
-      D := Dden-Dnum;
-      if D eq Parent(D)!0 then continue; end if;
-      RR, mRR := RiemannRochSpace(D);
-      if Dimension(RR) eq 1 then
-        x := mRR(RR.1);
-        if Divisor(x) ne Parent(Divisor(x))!0 then
-          Append(~xs, x);
-        end if;
-      end if;
-    end for;
-  end for;
-  //looks like every x appears twice
-  return Setseq(Set(xs));
-  //functions supported on the points of small degree as
-  //genereated by the Riemann Roch space
-end function;
-//What is the difference in size from a divisor D and -D?
-//Whats the relationship between the size of the places, the multiplicity and the size of f?
-
-model := function(phi,x_op);
-  //add 1/phi etc in here.
-  fu := MinimalPolynomial(phi);
-  fv := MinimalPolynomial(x_op);
-  K := BaseRing(BaseRing(Parent(phi)));
-  Kuvz<vz,uz,z> := PolynomialRing(K, 3);
-  _<vf,uf,zf> := FieldOfFractions(Kuvz);
-
-  fues := Eltseq(fu);
-  fves := Eltseq(fv);
-  fu := Numerator(&+[Evaluate(fues[i],zf)*uf^(i-1) : i in [1..#fues]]);
-  fv := Numerator(&+[Evaluate(fves[i],zf)*vf^(i-1) : i in [1..#fves]]);
-
-  fuv := Resultant(fu,fv,z);
-  //groebner basis? 1/phi here etc
-  /*
-  _<u> := PolynomialRing(K);
-  _<v> := PolynomialRing(Parent(u));
-  cuv := Coefficients(fuv);
-  muv := Monomials(fuv);
-  return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
-  */
-  fuvFact := Factorization(fuv);
-  if #fuvFact gt 1 then
-    for j := 1 to #fuvFact do
-      if Evaluate(fuvFact[j][1], [x_op, phi,0]) eq 0 then
-        fuv := fuvFact[j][1];
-        assert &and[Evaluate(fuvFact[k][1], [x_op, phi,0]) ne 0 : k in [j+1..#fuvFact]];
-      end if;
-    end for;
-  end if;
-  //_<u,v> := PolynomialRing(K,2);
-  //return Evaluate(fuv,[v,u,0]);
-  _<t,x> := PolynomialRing(K,2);
-  return Evaluate(fuv,[x,t,0]);
-  //x=v, t=u
-end function;
-
-PlaneModel := function(phi,x_op);
-  return model(phi,x_op);
-end function;
-
-function PlaneModelGroebner(phi, x_op)
-  //{Given a Belyi map phi, return a plane model for its domain such that t is the Belyi map}
-  KC := Parent(phi);
-  C := Curve(KC);
-  K := BaseRing(C);
-  nu := K.1;
-  phi0 := Numerator(phi);
-  phioo := Denominator(phi);
-  x_op0 := Numerator(x_op);
-  x_opoo := Denominator(x_op);
-  if Genus(C) eq 0 then // defined on PP^1, so no curve equation
-    R<X,Phi,X_op,u,v> := PolynomialRing(K,5);
-    h := hom< KC -> R | [X]>;
-    I := ideal< R | h(phioo)*Phi - h(phi0), h(x_opoo)*X_op - h(x_op0), v*h(phioo) - 1, u*h(x_opoo) - 1>; // need last equations to avoid points where phioo = 0
-    // eliminate v to obtain plane equation
-    basis := Basis(EliminationIdeal(I,{X_op,Phi}));
-    assert #basis eq 1;
-    new_eqn := basis[1];
-    S<x,t> := PolynomialRing(K,2);
-    h_plane := hom< Parent(new_eqn) -> S | [x,t,0,0,0] >;
-  else // so the curve actually has an equation
-    KC<x,y> := KC;
-    R<X,Y,Phi,X_op,u,v> := PolynomialRing(K,6);
-    h := hom< KC -> R | [X,Y]>;
-    curve_eqn := DefiningEquation(AffinePatch(C,1));
-    h_curve := hom< Parent(curve_eqn) -> R | [X,Y] >;
-    // need last equation to avoid points where phioo = 0
-    I := ideal< R | h_curve(curve_eqn), h(phioo)*Phi - h(phi0), h(x_opoo)*X_op - h(x_op0), v*h(phioo) - 1, u*h(x_opoo) - 1>; // need last equations to avoid points where phioo = 0
-    // eliminate X and v to obtain plane equation
-    basis := Basis(EliminationIdeal(I,{X_op,Phi}));
-    assert #basis eq 1;
-    new_eqn := basis[1];
-    printf "new equation = %o\n", new_eqn;
-    S<x,t> := PolynomialRing(K,2);
-    h_plane := hom< Parent(new_eqn) -> S | [0,0,t,x,0,0] >;
-    //h_plane := hom< Parent(new_eqn) -> S | X_op :-> x, Phi :-> t, X :-> 0, Y :-> 0, u :-> 0, v :-> 0 >;
-  end if;
-  return h_plane(new_eqn);
-end function;
-
-
-CoefficientValuationsSum:=function(f,pp)
-  return &+[ Valuation(a,pp) : a in Coefficients(f) ],
-  [ Valuation(a,pp) : a in Coefficients(f) ];
-end function;
-
-
-BelyiObjectiveFunction:=function(fuv)
-  K := BaseRing(Parent(fuv));
-  u := Parent(fuv).1;
-  v := Parent(fuv).2;
-  Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
-  mexps := [ Exponents(m) : m in Monomials(fuv) ];
-  coefs:=Coefficients(fuv);
-  assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
-  return (&+[ m[1] : m in mexps])*x1 + (&+[ m[2] : m in mexps])*x2 + #mexps*x3;
-end function;
-
-MultivariateToUnivariate:=function(f)
-  //turns an element in K[x,t] into an element K[x][t]
-  fstring:=Sprint(f);
-  K<nu1> := BaseRing(Parent(f));
-  Kx<x>:=PolynomialRing(K);
-  Kxt<t>:=PolynomialRing(Kx);
-  return eval(fstring);
-end function;
-
-
-MonicToIntegral:=function(f:Minkowski := true);
-  //scale the monic univariate polynomial to be integral
-  assert IsMonic(f);
-  K:=BaseRing(Parent(f));
-  ZK:=Integers(K);
-  coefs:=[ a : a in Coefficients(f) | a ne 0 ];
-
-  aa := ideal<ZK | coefs>^-1;
-  aprin, a := IsPrincipal(aa);
-  if aprin eq false then a:=IdealShortVectorsProcess(aa, 0, 2: Minkowski:=Minkowski)[1]; end if;
-  f_new:=f*a;
-
-  return f_new, a;
-end function;
 
 
 
-PolynomialToFactoredString:=function(f)
-  //factorise the polynomial and return it as a string
-  //Needs to be a multivariate polynomial in K[x][t]
 
-  coefs:=Coefficients(f);
-  mon:=Monomials(f);
-  str:="";
-  for j in [1..#coefs] do
 
-    if j ne 1 then
-      str:=str cat " + ";
-    end if;
-
-		a:=LeadingCoefficient(coefs[j]);
-		fac:=Factorization(coefs[j]);
-		list:=[];
-		for item in fac do
-			int,co:= MonicToIntegral(item[1]);
-			Append(~list,<co,int,item[2]>);
-      a /:= co^item[2];
-		end for;
-
-		str:= str cat Sprintf("(%o)",a);
-		for i in [1..#list] do
-			str:= str cat Sprintf("*(%o)^%o", list[i,2],list[i,3]);
-		end for;
-
-    if j ne 1 then
-      str:=str cat Sprintf("*%o",mon[j]);
-    end if;
-  end for;
-
-  K<nu1>:=BaseRing(BaseRing(f));
-  Kx<x>:=PolynomialRing(K);
-  Kxt<t>:=PolynomialRing(Kx);
-
-  assert f eq eval(str);
-  return str;
-end function;
 
 
 
@@ -436,6 +222,13 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
   return new_fuv, new_scaling;
 end function;
 
+
+
+
+
+
+
+
 reducemodel_units := function(fuv : Polyhedron:=false);
   K := BaseRing(Parent(fuv));
   u := Parent(fuv).1;
@@ -445,12 +238,16 @@ reducemodel_units := function(fuv : Polyhedron:=false);
   k:=Integers();
   Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
 
+  phi:=function(x);
+    return [ Log(Abs(Evaluate(x,v))) : v in InfinitePlaces(K)];
+  end function;
+
+
   mexps := [ Exponents(m) : m in Monomials(fuv) ];
   coefs:=Coefficients(fuv);
   assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
 
   UK,mUK:=UnitGroup(K);
-  M,phi:=MinkowskiSpace(K);
   // k1:=RealField(20);
   // JV: use real field same bit size as Magma's Minkowski output
   k1 := BaseField(M);
@@ -462,18 +259,15 @@ reducemodel_units := function(fuv : Polyhedron:=false);
 	SetObjectiveFunction(L1, obj1);
 
 	for n in [1..#mexps] do
-    // JV: gives a bug because coefs[n] is a sequence of real numbers, and
-    // the intention was to take complex numbers here.
-    // What does the norm do, when it's already a real number that you'll take Abs of?
-    mink_coef:=phi(coefs[n]);
-    abs_coef:=[ Abs(mink_coef[j]) : j in [1..r] ] cat [  Sqrt(mink_coef[j]^2+mink_coef[j+1]^2) : j in [ r+1+2*k : k in [0..s-1] ] ];
-		log_coef:= [ Log(alpha) : alpha in abs_coef ];
 
-		for m in [1..Dimension(M)] do
+    alpha_norm := Log(Abs(Norm(coefs[n])))/(r+s);
+    log_coef:= phi(coefs[n]);
+
+		for m in [1..r+s] do
 			extra_var1:=[ 0 : k in [1..N-1] ];
 			Insert(~extra_var1, (n-1)*Dimension(M) +m, -1);
 
-			phi_eps:= [ Log(Abs(Eltseq(phi(e))[m])) : e in UU ];
+			phi_eps:=[ phi(e)[m] : e in UU ];
 			lhs1:= Matrix(k1,1,3*#UU+N, &cat[ [ mexps[n,1]*log_eps, mexps[n,2]*log_eps, log_eps] : log_eps in phi_eps ] cat extra_var1);
 			lhs2:= Matrix(k1,1,3*#UU+N, &cat[ [ -mexps[n,1]*log_eps, -mexps[n,2]*log_eps, -log_eps] : log_eps in phi_eps ] cat extra_var1);
 
@@ -506,117 +300,241 @@ reducemodel_units := function(fuv : Polyhedron:=false);
 	return guv, [a,b,c];
 end function;
 
-reducemodel_old := function(fuv : Polyhedron:=false);
+
+
+
+
+
+
+MultivariateToUnivariate:=function(f)
+  //turns an element in K[x,t] into an element K[x][t]
+  fstring:=Sprint(f);
+  K<nu1> := BaseRing(Parent(f));
+  Kx<x>:=PolynomialRing(K);
+  Kxt<t>:=PolynomialRing(Kx);
+  return eval(fstring);
+end function;
+
+
+MonicToIntegral:=function(f:Minkowski := true);
+  //scale the monic univariate polynomial to be integral
+  assert IsMonic(f);
+  K:=BaseRing(Parent(f));
+  ZK:=Integers(K);
+  coefs:=[ a : a in Coefficients(f) | a ne 0 ];
+
+  aa := ideal<ZK | coefs>^-1;
+  aprin, a := IsPrincipal(aa);
+  if aprin eq false then a:=IdealShortVectorsProcess(aa, 0, 2: Minkowski:=Minkowski)[1]; end if;
+  f_new:=f*a;
+
+  return f_new, a;
+end function;
+
+
+
+PolynomialToFactoredString:=function(f)
+  //factorise the polynomial and return it as a string
+  //Needs to be a multivariate polynomial in K[x][t]
+
+  coefs:=Coefficients(f);
+  mon:=Monomials(f);
+  str:="";
+  for j in [1..#coefs] do
+
+    if j ne 1 then
+      str:=str cat " + ";
+    end if;
+
+		a:=LeadingCoefficient(coefs[j]);
+		fac:=Factorization(coefs[j]);
+		list:=[];
+		for item in fac do
+			int,co:= MonicToIntegral(item[1]);
+			Append(~list,<co,int,item[2]>);
+      a /:= co^item[2];
+		end for;
+
+		str:= str cat Sprintf("(%o)",a);
+		for i in [1..#list] do
+			str:= str cat Sprintf("*(%o)^%o", list[i,2],list[i,3]);
+		end for;
+
+    if j ne 1 then
+      str:=str cat Sprintf("*%o",mon[j]);
+    end if;
+  end for;
+
+  K<nu1>:=BaseRing(BaseRing(f));
+  Kx<x>:=PolynomialRing(K);
+  Kxt<t>:=PolynomialRing(Kx);
+
+  assert f eq eval(str);
+  return str;
+end function;
+
+
+
+
+
+
+
+
+
+function SmallFunctions(Qs, d)
+
+  //        Qs, points which are "small"
+  //        d, a degree bound; what d does genus 2 need?
+  // Output: functions supported on {Qs} of degree <= d
+
+  //The "small" points are the support of phi, phi-1.
+  //sort "small" points by degree
+  Qs := Sort(Qs, func<Q,R | Degree(Q)-Degree(R)>);
+
+  Ds := [];
+  QDs := [Divisor(Q) : Q in Qs]; //Make the points into divisors
+  newDs := [Universe(QDs) | 0];
+
+  //add divisors so that degree is <= d and collect in Ds
+  while #newDs ne 0 do
+    frontierDs := [];
+    for newD in newDs do
+      dnewD := Degree(newD);
+      for RD in QDs do
+        if Degree(RD) + dnewD le d then
+          Append(~Ds, RD + newD);
+          Append(~frontierDs, RD + newD);
+        end if;
+      end for;
+    end for;
+    newDs := frontierDs;
+  end while;
+  Ds:=Setseq(Set(Ds));
+
+  xs := [];
+  for Dden in Ds do
+    for Dnum in Ds do
+
+      D := Dden-Dnum;
+      if D eq Parent(D)!0 then continue; end if;
+      RR, mRR := RiemannRochSpace(D);
+      if Dimension(RR) eq 1 then
+        x := mRR(RR.1);
+        if Divisor(x) ne Parent(Divisor(x))!0 then
+          Append(~xs, x);
+        end if;
+      end if;
+    end for;
+  end for;
+  //looks like every x appears twice
+  return Setseq(Set(xs));
+  //functions supported on the points of small degree as
+  //genereated by the Riemann Roch space
+end function;
+//What is the difference in size from a divisor D and -D?
+//Whats the relationship between the size of the places, the multiplicity and the size of f?
+
+model := function(phi,x_op);
+  //add 1/phi etc in here.
+  fu := MinimalPolynomial(phi);
+  fv := MinimalPolynomial(x_op);
+  K := BaseRing(BaseRing(Parent(phi)));
+  Kuvz<vz,uz,z> := PolynomialRing(K, 3);
+  _<vf,uf,zf> := FieldOfFractions(Kuvz);
+
+  fues := Eltseq(fu);
+  fves := Eltseq(fv);
+  fu := Numerator(&+[Evaluate(fues[i],zf)*uf^(i-1) : i in [1..#fues]]);
+  fv := Numerator(&+[Evaluate(fves[i],zf)*vf^(i-1) : i in [1..#fves]]);
+
+  fuv := Resultant(fu,fv,z);
+  //groebner basis? 1/phi here etc
+  /*
+  _<u> := PolynomialRing(K);
+  _<v> := PolynomialRing(Parent(u));
+  cuv := Coefficients(fuv);
+  muv := Monomials(fuv);
+  return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
+  */
+  fuvFact := Factorization(fuv);
+  if #fuvFact gt 1 then
+    for j := 1 to #fuvFact do
+      if Evaluate(fuvFact[j][1], [x_op, phi,0]) eq 0 then
+        fuv := fuvFact[j][1];
+        assert &and[Evaluate(fuvFact[k][1], [x_op, phi,0]) ne 0 : k in [j+1..#fuvFact]];
+      end if;
+    end for;
+  end if;
+  //_<u,v> := PolynomialRing(K,2);
+  //return Evaluate(fuv,[v,u,0]);
+  _<t,x> := PolynomialRing(K,2);
+  f_plane:=Evaluate(fuv,[x,t,0])
+  f_padic := reducemodel_padic(f_plane);
+  f_unit := reducemodel_unit(f_padic);
+  //f_univ:=MultivariateToUnivariate(f_unit);
+  //f_display:=PolynomialToFactoredString(f_univ);
+  return f_unit;
+  //x=v, t=u
+end function;
+
+PlaneModel := function(phi,x_op);
+  return model(phi,x_op);
+end function;
+
+function PlaneModelGroebner(phi, x_op)
+  //{Given a Belyi map phi, return a plane model for its domain such that t is the Belyi map}
+  KC := Parent(phi);
+  C := Curve(KC);
+  K := BaseRing(C);
+  nu := K.1;
+  phi0 := Numerator(phi);
+  phioo := Denominator(phi);
+  x_op0 := Numerator(x_op);
+  x_opoo := Denominator(x_op);
+  if Genus(C) eq 0 then // defined on PP^1, so no curve equation
+    R<X,Phi,X_op,u,v> := PolynomialRing(K,5);
+    h := hom< KC -> R | [X]>;
+    I := ideal< R | h(phioo)*Phi - h(phi0), h(x_opoo)*X_op - h(x_op0), v*h(phioo) - 1, u*h(x_opoo) - 1>; // need last equations to avoid points where phioo = 0
+    // eliminate v to obtain plane equation
+    basis := Basis(EliminationIdeal(I,{X_op,Phi}));
+    assert #basis eq 1;
+    new_eqn := basis[1];
+    S<x,t> := PolynomialRing(K,2);
+    h_plane := hom< Parent(new_eqn) -> S | [x,t,0,0,0] >;
+  else // so the curve actually has an equation
+    KC<x,y> := KC;
+    R<X,Y,Phi,X_op,u,v> := PolynomialRing(K,6);
+    h := hom< KC -> R | [X,Y]>;
+    curve_eqn := DefiningEquation(AffinePatch(C,1));
+    h_curve := hom< Parent(curve_eqn) -> R | [X,Y] >;
+    // need last equation to avoid points where phioo = 0
+    I := ideal< R | h_curve(curve_eqn), h(phioo)*Phi - h(phi0), h(x_opoo)*X_op - h(x_op0), v*h(phioo) - 1, u*h(x_opoo) - 1>; // need last equations to avoid points where phioo = 0
+    // eliminate X and v to obtain plane equation
+    basis := Basis(EliminationIdeal(I,{X_op,Phi}));
+    assert #basis eq 1;
+    new_eqn := basis[1];
+    printf "new equation = %o\n", new_eqn;
+    S<x,t> := PolynomialRing(K,2);
+    h_plane := hom< Parent(new_eqn) -> S | [0,0,t,x,0,0] >;
+    //h_plane := hom< Parent(new_eqn) -> S | X_op :-> x, Phi :-> t, X :-> 0, Y :-> 0, u :-> 0, v :-> 0 >;
+  end if;
+  return h_plane(new_eqn);
+end function;
+
+
+CoefficientValuationsSum:=function(f,pp)
+  return &+[ Valuation(a,pp) : a in Coefficients(f) ],
+  [ Valuation(a,pp) : a in Coefficients(f) ];
+end function;
+
+
+BelyiObjectiveFunction:=function(fuv)
   K := BaseRing(Parent(fuv));
   u := Parent(fuv).1;
   v := Parent(fuv).2;
-  ZK := Integers(K);
+  Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
   mexps := [ Exponents(m) : m in Monomials(fuv) ];
   coefs:=Coefficients(fuv);
-
-  //S is the prime divisors of all norms of numerators and denominators of coeffients
-  S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(fuv)]
-		 cat &cat[TrialDivision(Integers()!Norm(Denominator(s))) : s in Coefficients(fuv)];
-  //do we need a bound for trial division?
-  S := SequenceToSet([s[1] : s in S]);
-  aa := 1*ZK;
-  bb := 1*ZK;
-  cc := 1*ZK;
-  for p in S do
-	  for pp in [pp[1] : pp in Factorization(p*Integers(K))] do
-	    cvals := [ Valuation(c,pp) : c in coefs ];
-      //valuations at this prime pp of the coefficients
-	    k := Integers();
-	    nodemins := [];
-	    for jc := 1 to #mexps do
-        //run over the exponents of the coefficients
-    		e0f0 := mexps[jc];
-	     	e0,f0 := Explode(e0f0);
-		    c0 := cvals[jc];
-		    lhs := Matrix(k,[[ef[1]-e0, ef[2]-f0] : ef in mexps]); //The difference in the exponents of each coeffient and the exponents of this coefficient
-		    rel := Matrix(k,[[1] : ef in mexps]);
-		    rhs := Matrix(k,[[c0-c] : c in cvals]); //The difference between valuations
-		    obj := Matrix(k,1,2,[&+[mexps[j][i]-e0f0[i] : j in [1..#mexps]] : i in [1..2]]);
-		    // integer linear program doesn't work?
-
-        if Polyhedron eq false then
-	        soln:=MinimalIntegerSolution(lhs, rel, rhs, obj);
-          soln:= Matrix(k,1,2,[ Round(soln[1,1]), Round(soln[1,2]) ]);
-          objvals:=obj[1,1]*soln[1,1] + obj[1,2]*soln[1,2];
-          Append(~nodemins, <objvals, soln, c0, e0f0>);
-        else
-          poly := PolyhedronWithInequalities(
-  						  [ Eltseq(r) : r in Rows(lhs) ],
-  						   ChangeUniverse(Eltseq(rhs),Integers()));
-  		    // it's a union of cones and obj is linear, so min is at a vertex
-  		    poly := IntegralPart(poly);
-  		    vts := Vertices(poly);
-  		    assert [Eltseq(r) : r in Rays(InfinitePart(poly))] eq [[0,1],[1,0]] or
-  				    &and[&and[IsIntegral(cvt) : cvt in Eltseq(vt)] : vt in vts];
-  		    vts := [ [ Ceiling(cvt) : cvt in Eltseq(vt)] : vt in vts];
-          //looks like we might get a couple of vertices using this method
-          //and only one with the linear program, which is better?
-  		    if #vts gt 0 then
-  		      objvals := [(obj*Matrix(k,2,1,Eltseq(vt)))[1,1] - #mexps*c0 : vt in vts];
-  		      mval, mind := Min(objvals);
-  		      Append(~nodemins, <mval, vts[mind], c0, e0f0>);
-  		    end if;
-        end if;
-      end for;
-
-      nodemins := Sort(nodemins, func<x,y | x[1]-y[1]>);
-    	ef := Eltseq(nodemins[1][2]);
-    	e0f0 := Eltseq(nodemins[1][4]);
-    	aa *:= pp^(ef[1]);
-    	bb *:= pp^(ef[2]);
-    	cc *:= pp^(nodemins[1][3]+ef[1]*e0f0[1]+ef[2]*e0f0[2]);
-
-    end for;
-  end for;
-
-  aprin, a := IsPrincipal(aa);
-  if aprin eq false then a:=IdealShortVectorsProcess(aa, 0.00001, 2: Minkowski:=false)[1]; end if;
-  bprin, b := IsPrincipal(bb);
-  if bprin eq false then b:=IdealShortVectorsProcess(bb, 0.00001, 2: Minkowski:=false)[1]; end if;
-  cprin, c := IsPrincipal(cc);
-  if cprin eq false then c:=IdealShortVectorsProcess(cc, 0.00001, 2: Minkowski:=false)[1]; end if;
-  //include units
-/*
-  cvals := [ Valuation(c,pp) : c in coefs ];
-  //valuations at this prime pp of the coefficients
-  k := Integers();
-  nodemins := [];
-  for jc := 1 to #mexps do
-    //run over the exponents of the coefficients
-    e0f0 := mexps[jc];
-    e0,f0 := Explode(e0f0);
-    c0 := cvals[jc];
-    lhs := Matrix(k,[[ef[1]-e0, ef[2]-f0] : ef in mexps]); //The difference in the exponents of each coeffient and the exponents of this coefficient
-    rel := Matrix(k,[[1] : ef in mexps]);
-    rhs := Matrix(k,[[c0-c] : c in cvals]); //The difference between valuations
-    obj := Matrix(k,1,2,[&+[mexps[j][i]-e0f0[i] : j in [1..#mexps]] : i in [1..2]]);
-    // integer linear program doesn't work?
-
-    if Polyhedron eq false then
-      soln:=MinimalIntegerSolution(lhs, rel, rhs, obj);
-      soln:= Matrix(k,1,2,[ Round(soln[1,1]), Round(soln[1,2]) ]);
-      objvals:=obj[1,1]*soln[1,1] + obj[1,2]*soln[1,2];
-      Append(~nodemins, <objvals, soln, c0, e0f0>);
-*/
-
-/*
-  fuv_new:=Evaluate(fuv,[a*u,b*v])/c;
-  UK,mUK:=UnitGroup(K);
-  eps:=K!(mUK(UK.2));
-
-  ff_units:=[];
-  for i in [-10..10] do
-    for j in [-10..10] do
-       fU:=Evaluate(fuv_new,[u,v*eps^i])/eps^j;
-       Append(~ff_units,<#Sprint(fU),fU>);
-    end for;
-  end for;
-  ff_units:=Sort(ff_units);
-*/
-  return [ Evaluate(fuv,[a*u,b*v])/c, 1/c];
+  assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+  return (&+[ m[1] : m in mexps])*x1 + (&+[ m[2] : m in mexps])*x2 + #mexps*x3;
 end function;
