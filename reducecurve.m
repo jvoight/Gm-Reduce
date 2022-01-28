@@ -469,6 +469,8 @@ reducemodel_units := function(fuv : Polyhedron:=false);
     abs_coef:=[ Abs(mink_coef[j]) : j in [1..r] ] cat [  Sqrt(mink_coef[j]^2+mink_coef[j+1]^2) : j in [ r+1+2*k : k in [0..s-1] ] ];
 		log_coef:= [ Log(alpha) : alpha in abs_coef ];
 
+        alpha_norm := 0; // hack to the max, plz delete when fixed
+
 		for m in [1..Dimension(M)] do
 			extra_var1:=[ 0 : k in [1..N-1] ];
 			Insert(~extra_var1, (n-1)*Dimension(M) +m, -1);

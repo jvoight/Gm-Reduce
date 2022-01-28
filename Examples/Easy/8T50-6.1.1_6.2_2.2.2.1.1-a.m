@@ -20,38 +20,59 @@ phi := (1/481555322138015200*(493227617344194*nu^2-8409605121382299*nu+625898368
 print "phi has divisor";
 Support(Divisor(phi));
 
-/*
-  RsandPs := Support(Divisor(phi));
-  RsandQs := Support(Divisor(phi-1));
-  PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
-  printf "ramification points = %o\n", PsQsRs;
-*/
+RsandPs := Support(Divisor(phi));
+RsandQs := Support(Divisor(phi-1));
+PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
+printf "ramification points = %o\n", PsQsRs;
 
 P := ideal< OK | OK![9973, 0, 0], OK![194, 1, 0] >;
 printf "reducing mod P = %o\n", P;
 
 X_FF, phi_FF := ReduceBelyiMap(X, phi, P);
-RsandPs := Support(Divisor(phi_FF));
-RsandQs := Support(Divisor(phi_FF-1));
-PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
-printf "ramification points = %o\n", PsQsRs;
+RsandPs_FF := Support(Divisor(phi_FF));
+RsandQs_FF := Support(Divisor(phi_FF-1));
+PsQsRs_FF := SetToSequence(SequenceToSet(RsandPs_FF cat RsandQs_FF));
+printf "ramification points = %o\n", PsQsRs_FF;
 
 print "computing small functions supported at points above";
 xs := SmallFunctions(PsQsRs, 2);
-for x_op in xs do
+xs_FF := [];
+for el in xs do
+  _, x_FF := ReduceBelyiMap(X, el, P);
+  Append(~xs_FF, x_FF);
+end for;
+for i := 1 to #xs do
+  x_op := xs[i];
+  x_op_FF := xs_FF[i];
   pts, mults := Support(Divisor(x_op));
-  printf "x_op has support\n%o,\n %o\n", pts, mults;
-  print "computing plane model";
-  time F_res := PlaneModel(phi_FF, x_op);
-  print F_res;
-  print Monomials(F_res);
-  /*
-    print "p-adic reduction";
-    time F_red_p := reducemodel_padic(F_res);
-    print "unit reduction";
-    time F_red_unit := reducemodel_units(F_red_p);
-    print F_red_unit;
-    print Monomials(F_red_unit);
-  */
+  //printf "x_op has support\n%o,\n %o\n", pts, mults;
+  print "computing model over finite field";
+  F_res_FF := PlaneModel(phi_FF, x_op_FF);
+  mons_FF := Monomials(F_res_FF);
+  printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
+  print "now computing in char 0";
+  t0 := Cputime();
+  F_res := PlaneModel(phi, x_op);
+  t1 := Cputime();
+  printf "computing plane model took %o\n", t1-t0;
+  //print F_res;
   print "-------------------------------------";
 end for;
+
+//print "computing small functions supported at points above";
+//xs := SmallFunctions(PsQsRs, 2);
+//for x_op in xs do
+//  pts, mults := Support(Divisor(x_op));
+//  printf "x_op has support\n%o,\n %o\n", pts, mults;
+//  print "computing plane model";
+//  time F_res := PlaneModel(phi_FF, x_op);
+//  print F_res;
+//  print Monomials(F_res);
+//  //  print "p-adic reduction";
+//  //  time F_red_p := reducemodel_padic(F_res);
+//  //  print "unit reduction";
+//  //  time F_red_unit := reducemodel_units(F_red_p);
+//  //  print F_red_unit;
+//  //  print Monomials(F_red_unit);
+//  print "-------------------------------------";
+//end for;

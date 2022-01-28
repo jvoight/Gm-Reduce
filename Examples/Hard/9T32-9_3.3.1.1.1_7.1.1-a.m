@@ -38,9 +38,12 @@ printf "ramification points of reduction = %o\n", PsQsRs_FF;
 
 print "computing small functions supported at points above";
 xs := SmallFunctions(PsQsRs, 2);
-_, xs_FF := [ReduceBelyiMap(X, el, P) : el in xs];
-//for i := 1 to #xs do
-for i := 1 to 2 do
+xs_FF := [];
+for el in xs do
+  _, x_FF := ReduceBelyiMap(X, el, P);
+  Append(~xs_FF, x_FF);
+end for;
+for i := 1 to #xs do
   x_op := xs[i];
   x_op_FF := xs_FF[i];
   pts, mults := Support(Divisor(x_op));
