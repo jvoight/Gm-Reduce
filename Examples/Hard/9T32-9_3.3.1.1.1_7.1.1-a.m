@@ -28,7 +28,7 @@ printf "ramification points = %o\n", PsQsRs;
 // make finite field version
 P := ideal< OK | OK![97, 0, 0, 0, 0, 0], OK![3, 1, 0, 0, 0, 0] >;
 printf "reducing mod P = %o\n", P;
-X_FF, phi_FF := ReduceBelyiMap(X, phi, P);
+X_FF, phi_FF := ReduceRationalFunction(X, phi, P);
 RsandPs_FF := Support(Divisor(phi_FF));
 RsandQs_FF := Support(Divisor(phi_FF-1));
 PsQsRs_FF := SetToSequence(SequenceToSet(RsandPs_FF cat RsandQs_FF));
@@ -38,10 +38,25 @@ printf "ramification points of reduction = %o\n", PsQsRs_FF;
 
 print "computing small functions supported at points above";
 xs := SmallFunctions(PsQsRs, 2);
-for x_op in xs do
+xs_FF := [];
+for el in xs do
+  _, x_FF := ReduceRationalFunction(X, el, P);
+  Append(~xs_FF, x_FF);
+end for;
+for i := 1 to #xs do
+  x_op := xs[i];
+  x_op_FF := xs_FF[i];
   pts, mults := Support(Divisor(x_op));
-  printf "x_op has support\n%o,\n %o\n", pts, mults;
-  time F_res := PlaneModel(phi, x_op);
-  print F_res;
+  //printf "x_op has support\n%o,\n %o\n", pts, mults;
+  print "computing model over finite field";
+  F_res_FF := PlaneModel(phi_FF, x_op_FF);
+  mons_FF := Monomials(F_res_FF);
+  printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
+  print "now computing in char 0";
+  t0 := Cputime();
+  F_res := PlaneModel(phi, x_op);
+  t1 := Cputime();
+  printf "computing plane model took %o\n", t1-t0;
+  //print F_res;
   print "-------------------------------------";
 end for;

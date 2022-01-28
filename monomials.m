@@ -1,4 +1,7 @@
-AttachSpec("~/github/endomorphisms/endomorphisms/magma/spec"); // have to change if endomorphisms repo is elsewhere
+AttachSpec("../endomorphisms/endomorphisms/magma/spec"); // have to change if endomorphisms repo is elsewhere
+AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+// includes intrinsic S3Action(tau, phi)
+
 /*
   OK := Integers(K);
   dens := [];
@@ -14,7 +17,7 @@ AttachSpec("~/github/endomorphisms/endomorphisms/magma/spec"); // have to change
   primes := PrimesUpTo(100, K : coprime_to := cop);
 */
 
-intrinsic ReduceBelyiMap(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) -> Any
+intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) -> Any
   {Given a Belyi map phi defined on a curve X and a prime ideal of the field of definition of X, return the reductions of X and phi mod P}
 
   // make curve over finite field
@@ -50,3 +53,5 @@ intrinsic ReduceBelyiMap(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) -> Any
   end for;
   return X_FF, phi_FF_num/phi_FF_den;
 end intrinsic;
+
+//SortSmallFunctions
