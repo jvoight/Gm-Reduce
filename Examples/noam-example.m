@@ -1,5 +1,5 @@
 AttachSpec("code/spec_database");
-load "../../Gm Reduce/Code/reducecurve.m";
+load "../Gm-Reduce/reducecurve.m";
 
 F<g> := NumberField(Polynomial([8,-10,9,1,1]));
 X := Curve(ProjectiveSpace(PolynomialRing(F, 2)));

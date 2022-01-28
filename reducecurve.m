@@ -429,8 +429,6 @@ reducemodel_padic := function(f : Polyhedron:=false, Minkowski:=true);
       end for;
     end for;
 
-  end for;
-
   Sort(~new_fuvs);
   new_fuv:=new_fuvs[1,2];
   new_scaling:= new_fuvs[1,3];
@@ -443,6 +441,7 @@ reducemodel_units := function(fuv : Polyhedron:=false);
   u := Parent(fuv).1;
   v := Parent(fuv).2;
   ZK := Integers(K);
+  r,s:=Signature(K);
   k:=Integers();
   Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
 
@@ -466,6 +465,8 @@ reducemodel_units := function(fuv : Polyhedron:=false);
     // JV: gives a bug because coefs[n] is a sequence of real numbers, and
     // the intention was to take complex numbers here.
     // What does the norm do, when it's already a real number that you'll take Abs of?
+    mink_coef:=phi(coefs[n]);
+    abs_coef:=[ Abs(min_coef[j]) : j in [1..r] ] cat [  Sqrt(min_coef[j]^2+min_coef[j+1]^2) : j in [ r+1+2k : k in [0..s-1] ] ];
 		alpha_norm:=Log(Abs(Norm(coefs[n])))/(Dimension(M));
 		log_coef:= [ Log(Abs(alpha)) : alpha in Eltseq(phi(coefs[n])) ];
 		for m in [1..Dimension(M)] do
