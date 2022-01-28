@@ -28,7 +28,7 @@ printf "ramification points = %o\n", PsQsRs;
 // make finite field version
 P := ideal< OK | OK![97, 0, 0, 0, 0, 0], OK![3, 1, 0, 0, 0, 0] >;
 printf "reducing mod P = %o\n", P;
-X_FF, phi_FF := ReduceBelyiMap(X, phi, P);
+X_FF, phi_FF := ReduceRationalFunction(X, phi, P);
 RsandPs_FF := Support(Divisor(phi_FF));
 RsandQs_FF := Support(Divisor(phi_FF-1));
 PsQsRs_FF := SetToSequence(SequenceToSet(RsandPs_FF cat RsandQs_FF));
@@ -40,7 +40,7 @@ print "computing small functions supported at points above";
 xs := SmallFunctions(PsQsRs, 2);
 xs_FF := [];
 for el in xs do
-  _, x_FF := ReduceBelyiMap(X, el, P);
+  _, x_FF := ReduceRationalFunction(X, el, P);
   Append(~xs_FF, x_FF);
 end for;
 for i := 1 to #xs do

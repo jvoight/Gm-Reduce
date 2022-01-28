@@ -1,6 +1,6 @@
 SetClassGroupBounds("GRH");
 
-intrinsic IdealShortVectorsProcess(I::RngOrdIdl, l::RngIntElt, u::RngIntElt : Minkowski:=true, timeout:=2);
+intrinsic IdealShortVectorsProcess(I::RngOrdIdl, l::RngIntElt, u::RngIntElt : Minkowski:=true, timeout:=2) -> SeqEnum
   {Given an ideal I, thought of as a lattice, and integers l and u, return vectors in the lattice bounded by l and u scaled by a medium sized vector in parallelepiped.}
   //l,u are size in which to search over lattice, scaled by a medium sized vector in parallelepiped.
   if Degree(NumberField(Order(I))) gt 1 then
@@ -165,8 +165,9 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
 end intrinsic;
 
 intrinsic PlaneModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
+  {}
   return model(phi,x_op);
-end function;
+end intrinsic;
 
 function PlaneModelGroebner(phi, x_op)
   //{Given a Belyi map phi, return a plane model for its domain such that t is the Belyi map}
@@ -208,10 +209,10 @@ function PlaneModelGroebner(phi, x_op)
   return h_plane(new_eqn);
 end function;
 
-intrinsic CoefficientValuationsSum(f::, pp::)
-  return &+[ Valuation(a,pp) : a in Coefficients(f) ],
-  [ Valuation(a,pp) : a in Coefficients(f) ];
-end function;
+intrinsic CoefficientValuationsSum(f::., pp::.) -> Any
+  {}
+  return &+[ Valuation(a,pp) : a in Coefficients(f) ], [ Valuation(a,pp) : a in Coefficients(f) ];
+end intrinsic;
 
 intrinsic BelyiObjectiveFunction(fuv::RngMPolElt) -> RngMPolElt
   {Given a polynomial or rational function fuv in 2 variables, return...?} // TODO: finish doc string
@@ -223,7 +224,7 @@ intrinsic BelyiObjectiveFunction(fuv::RngMPolElt) -> RngMPolElt
   coefs:=Coefficients(fuv);
   assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
   return (&+[ m[1] : m in mexps])*x1 + (&+[ m[2] : m in mexps])*x2 + #mexps*x3;
-end function;
+end intrinsic;
 
 intrinsic MultivariateToUnivariate(f::RngMPolElt) -> RngUPolElt
   {turns an element f in K[x,t] into an element K[x][t]}
@@ -232,9 +233,9 @@ intrinsic MultivariateToUnivariate(f::RngMPolElt) -> RngUPolElt
   Kx<x>:=PolynomialRing(K);
   Kxt<t>:=PolynomialRing(Kx);
   return eval(fstring);
-end function;
+end intrinsic;
 
-intrinsic MonicToIntegral(f::RngUPoltElt : Minkowski := true);
+intrinsic MonicToIntegral(f::RngUPoltElt : Minkowski := true) -> Any
   {scale the monic univariate polynomial to be integral}
   assert IsMonic(f);
   K:=BaseRing(Parent(f));
