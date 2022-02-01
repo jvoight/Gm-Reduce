@@ -1,4 +1,4 @@
-
+AttachSpec("spec");
 // Belyi maps downloaded from the LMFDB on 28 January 2022.
 // Magma code for Belyi map with label 4T5-4_4_3.1-a
 

@@ -1,6 +1,6 @@
 //must be in BelyiDB directory
-AttachSpec("code/spec_database");
-load "../Gm-Reduce/reducecurve.m";
+AttachSpec("../BelyiDB/code/spec_database");
+AttachSpec("spec");
 
 /*
 filenames:=[
