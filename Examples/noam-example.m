@@ -37,7 +37,7 @@ for xx in small_functions do
   //try 1/phi etc
   S3orbit:=[ phi, 1/phi, 1-phi, phi/(phi-1), 1-1/phi, 1/(1-phi)  ];
   for belyimap in S3orbit do
-    f := model(belyimap, xx); f;
+    f := model(belyimap, xx);
 
     Append(~ffs,<#Sprint(f),f, Index(S3orbit, belyimap), Degree(xx) >);
     sup,mult:=Support(Divisor(xx));
@@ -59,3 +59,20 @@ for fuv_es in shortest_ffs do
 end for;
 
 ProfilePrintByTotalTime(:Max:=40);
+
+
+
+
+
+fuv:=shortest_ffs[1,2];
+fp1:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false); //fairly quick
+fp2:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);  //slow due to polyhedra, in particular meet, reduct, MinimalRGenerators(), Polyhedron(), Inequalities took a long time.
+fp3:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false); //~2 mins, same as fp2 but even longer because its 3-dimensional
+
+[ [ Valuation(cc,pp) : cc in Coefficients(fp1) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(fp2) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(fp3) ] : pp in SS ];
+
+fu1:=reducemodel_units(fp1);
+fu2:=reducemodel_units(fp2);
+fu3:=reducemodel_units(fp3);

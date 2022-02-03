@@ -42,39 +42,16 @@ fuv_display := PolynomialToFactoredString(MultivariateToUnivariate(unit_redfuv))
 
 ProfilePrintByTotalTime(:Max:=40);
 
-
+_<t,x>:=PolynomialRing(K,2);
 fuv:=1/95551488*(-11132812500*nu + 35205078125)*t^2 + 1/3456*(884375*nu -
     2796875)*t*x^3 + 1/110592*(-136250000*nu + 430859375)*t*x^2 +
     1/442368*(975859375*nu - 3085937500)*t*x + 1/23887872*(-30630859375*nu +
     96863281250)*t + x^6 + 1/4*(-15*nu + 50)*x^5;
 
-reducemodel_padic(fuv);
-(-1824000000000*nu + 5768000000000)*t^2 + (2445120000*nu - 7732800000)*t*x^3 +
-    (3722625000*nu - 11772000000)*t*x^2 + (2107856250*nu - 6665625000)*t*x +
-    (387453125*nu - 1225234375)*t + 5832*x^6 + (7290*nu - 21870)*x^5
+reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false));
+reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);
+reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false);
 
-reducemodel_padic_old(fuv);
-    (-3648*nu + 11536)*t^2 + (8824*nu - 27904)*t*x^3 + (-19750*nu + 62455)*t*x^2 +
-        (16441*nu - 51991)*t*x + (-4443*nu + 14050)*t + (-6*nu + 19)*x^6 + (-68*nu +
-        215)*x^5
-
-
-        > [ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic(fuv)) ] : pp in SS ];
-        [
-            [ 24, 18, 7, 3, 0, 6, 2 ],
-            [ 0, 3, 3, 3, 3, 6, 6 ],
-            [ 0, 6, 6, 7, 0, 6, 6 ],
-            [ 18, 9, 12, 11, 13, 0, 2 ]
-        ]
-        > [ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic_old(fuv)) ] : pp\
-         in SS ];
-        [
-            [ 8, 7, 0, 0, 1, 0, 0 ],
-            [ 0, 0, 0, 0, 0, 0, 0 ],
-            [ 0, 3, 4, 6, 0, 0, 1 ],
-            [ 0, 0, 2, 0, 1, 0, 1 ]
-        ]
-       reducemodel_padic_old(fuv : Integral:=false, Polyhedron:=false);
-        1/81*(-5330*nu + 16855)*t^2 + (-38*nu + 120)*t*x^3 + 1/4*(-2435*nu + 7700)*t*x^2
-    + 1/2*(-7259*nu + 22955)*t*x + (-7025*nu + 22215)*t + 1/9*(4*nu + 13)*x^6 +
-    nu*x^5
+[ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false)) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true)) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false)) ] : pp in SS ];
