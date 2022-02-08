@@ -48,9 +48,10 @@ fuv:=1/95551488*(-11132812500*nu + 35205078125)*t^2 + 1/3456*(884375*nu -
     1/442368*(975859375*nu - 3085937500)*t*x + 1/23887872*(-30630859375*nu +
     96863281250)*t + x^6 + 1/4*(-15*nu + 50)*x^5;
 
-reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false));
-reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);
-reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false);
+fp1:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false);
+fp2:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=true);
+fp3:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);
+fp4:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false);
 
 [ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false)) ] : pp in SS ];
 [ [ Valuation(cc,pp) : cc in Coefficients(reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true)) ] : pp in SS ];
