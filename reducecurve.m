@@ -247,7 +247,7 @@ intrinsic MultivariateToUnivariate(f::RngMPolElt) -> RngUPolElt
   return eval(fstring);
 end intrinsic;
 
-intrinsic MonicToIntegral(f::RngUPoltElt : Minkowski := true) -> Any
+intrinsic MonicToIntegral(f::RngUPolElt : Minkowski := true) -> Any
   {scale the monic univariate polynomial to be integral}
   assert IsMonic(f);
   K:=BaseRing(Parent(f));
@@ -264,7 +264,7 @@ intrinsic MonicToIntegral(f::RngUPoltElt : Minkowski := true) -> Any
   return f_new, a;
 end intrinsic;
 
-intrinsic PolynomialToFactoredString(f::RngMPolElt) -> MonStgElt
+intrinsic PolynomialToFactoredString(f::RngUPolElt) -> MonStgElt
   {factorise the polynomial f and return it as a string. Needs to be a multivariate polynomial in K[x][t]}
 
   coefs:=Coefficients(f);
@@ -302,8 +302,8 @@ end intrinsic;
 
 
 
-MinimiseL1ToLinearProgram:=function(coefficients, constants)
-  /* we turn minimising the function \sum_{i=1..m} | a_{i,1}x_1 + ... + a_{i,n}x_n + b_i |
+intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMatRngElt) -> LP
+  {}/*we turn minimising the function \sum_{i=1..m} | a_{i,1}x_1 + ... + a_{i,n}x_n + b_i |
    into a linear program. The input is coefficients which is an mxn matrix of coefficients a_{i,j}
    and and mx1 matrix of the {b_i}. The output is an equivalent linear program */
 
@@ -335,12 +335,12 @@ MinimiseL1ToLinearProgram:=function(coefficients, constants)
   for i in [1..var_no] do  SetLowerBound(L, i, k!-10000); end for;
 
   return L;
-end function;
+end intrinsic;
 
 
 
 
-intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=true, Minkowski:=true) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=true) -> RngMPolElt, SeqEnum
   {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
   K := BaseRing(Parent(f));
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
@@ -398,7 +398,6 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
     rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
 
     if Integral eq false then
-      assert ClearDenominators eq false;
       L:=MinimiseL1ToLinearProgram(lhs, -rhs);
       soln,state:=Solution(L);
       assert state eq 0;
@@ -407,7 +406,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
 
     else
 
-      V2:=VectorSpace(Rationals(),2);
+      /*V2:=VectorSpace(Rationals(),2);
       if lp_size eq 2 and Set([ IsIndependent([V2!obj[1],V2!row]) : row in Rows(lhs) ]) eq {true} then
 
         L := LPProcess(k, lp_size);
@@ -416,6 +415,19 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
         for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
         soln,state:=Solution(L);
         assert state eq 0;
+        points_loop:=[soln];*/
+
+      //else
+
+      if Speedy eq true then
+
+        L := LPProcess(k, lp_size);
+        SetObjectiveFunction(L, obj);
+        AddConstraints(L, lhs, rhs : Rel := "ge");
+        //UnsetBounds(L) doesn't work
+        //These are lower bounds on the solution
+        for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
+        soln,state:=Solution(L);
         points_loop:=[soln];
 
       else
@@ -444,20 +456,8 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
         min_points:=Setseq(Points(int_poly));
         points_loop:=min_points;
         //all of the points at which the objective function is minimal.
-        //assert Eltseq(soln) in [ Eltseq(a) : a in min_points ];
-
-        //find the points which give something principal
-        //Cl,h:=ClassGroup(K); hin:=Inverse(h);
-        //prin:=Order(hin(pp));
-        //principal_points := [ vv : vv in min_points | [ IsDivisibleBy(a,prin) : a  in Eltseq(vv) ] eq [true,true] ];
-
-        //if principal_points eq [] then
-          //points_loop := min_points; principal:=false;
-        //else
-          //points_loop := principal_points; principal:=true;
-        //end if;
-
       end if;
+      //end if;
     end if;
 
     Append(~minimal_solutions,points_loop);
@@ -498,9 +498,8 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
   new_fuvs:=[];
   for ab in all_rescalings do
     if ClearDenominators eq true then
-      guv:=Evaluate(new_f,[ab[i]*variables[i] : i in [1..n]]);
+      guv:=Evaluate(f,[ab[i]*variables[i] : i in [1..n]]);
       // JV: possibly redundantly, clear denominators one last time
-      [ [  Valuation(cc,pp) : cc in Coefficients(guv) ] : pp in SS ];
       jj := (ideal<ZK | Coefficients(guv)>)^-1;
       jprinbl, j := IsPrincipal(jj);
       if not jprinbl then
@@ -515,7 +514,18 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
       end for;
     else
       guv:=Evaluate(new_f,[ab[i]*variables[i] : i in [1..n]])*ab[n+1];
-      Append(~new_fuvs, <#Sprint(guv),guv,ab>);
+      jj := (ideal<ZK | Coefficients(guv)>)^-1;
+      jprinbl, j := IsPrincipal(jj);
+      if not jprinbl then
+        js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
+      else
+        js:=[j];
+      end if;
+
+      for j in js do
+        guv *:= j;
+        Append(~new_fuvs, <#Sprint(guv),guv,ab>);
+      end for;
     end if;
   end for;
 
@@ -527,7 +537,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
 end intrinsic;
 
 
-intrinsic reducemodel_units(f::RngMPolElt : Polyhedron:=false, prec:=100) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
   {}
   K := BaseRing(Parent(f));
   //u := Parent(fuv).1;
