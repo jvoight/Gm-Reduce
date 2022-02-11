@@ -355,7 +355,7 @@ intrinsic CoefficientValuations(f::RngMPolElt) -> SeqEnum
 end intrinsic;
 
 
-intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=true) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=true, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
   {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
   K := BaseRing(Parent(f));
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
@@ -481,8 +481,25 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=f
     end if;
   end for;
 
-  //for each variable create all possible elements to scale by.
+  Cl,mp:=ClassGroup(K);
+  cl_gen:=Cl.1;
+
   all_rescalings:=[];
+  for vv in rescaling_ideals do
+    scaling_factors:=[];
+    for aa in vv do
+      Inverse(mp)(aa);
+      principalize:=mp(-Inverse(mp)(aa)); //make sure this is positive exponent
+      id:=aa*principalize;
+      aprin,a:=IsPrincipal(id);
+      assert aprin;
+      Append(~scaling_factors,a);
+    end for;
+    Append(~all_rescalings,scaling_factors);
+  end for;
+  //for each variable create all possible elements to scale by.
+
+/*  all_rescalings:=[];
   for vv in rescaling_ideals do
     scaling_factors:= [ ];
     for w in vv do
@@ -509,7 +526,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=f
     assert #all_lists eq &*[ #A : A in scaling_factors ];
     Append(~all_rescalings,all_lists);
   end for;
-  all_rescalings:=&cat(all_rescalings);
+  all_rescalings:=&cat(all_rescalings);*/
 
   new_fuvs:=[];
   for ab in all_rescalings do
