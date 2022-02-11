@@ -338,6 +338,21 @@ intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMa
 end intrinsic;
 
 
+intrinsic CoefficientSupport(f::RngMPolElt) -> SeqEnum
+  {returns all of the primes ideals with nonzero valuation in the coefficients}
+  K:=BaseRing(Parent(f));
+  S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(f) | s ne 0 ]
+     cat &cat[TrialDivision(Integers()!Norm(Denominator(s))) : s in Coefficients(f) | s ne 0 ];
+  S := SequenceToSet([s[1] : s in S]);
+  SS:=&cat[ [pp[1] : pp in Factorization(p*Integers(K))] : p in S ];
+  return SS;
+end intrinsic;
+
+
+intrinsic CoefficientValuations(f::RngMPolElt) -> SeqEnum
+  {the valuations of each coefficient at every prime in CoefficientSupport(f)}
+  return [ [ Valuation(cc,pp) : cc in Coefficients(f) ] : pp in CoefficientSupport(f) ];
+end intrinsic;
 
 
 intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=true) -> RngMPolElt, SeqEnum
@@ -380,16 +395,11 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=f
     lp_size:=n+1;
   end if;
 
-
   new_c := 1;
   new_f:=f;
 
+  SS:=CoefficientSupport(f);
   //S is the prime divisors of all norms of numerators and denominators of coeffients
-  S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(f) | s ne 0 ]
-		 cat &cat[TrialDivision(Integers()!Norm(Denominator(s))) : s in Coefficients(f) | s ne 0 ];
-  //do we need a bound for trial division?
-  S := SequenceToSet([s[1] : s in S]);
-  SS:=&cat[ [pp[1] : pp in Factorization(p*Integers(K))] : p in S ];
   minimal_solutions:=[];
 
   for pp in SS do
@@ -397,72 +407,78 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=f
 	  cvals := [ Valuation(c,pp) : c in coefs  ];
     rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
 
-    if Integral eq false then
-      L:=MinimiseL1ToLinearProgram(lhs, -rhs);
-      soln,state:=Solution(L);
-      assert state eq 0;
-      soln:= [ Eltseq(soln)[i] : i in [1..NumberOfColumns(lhs)] ];
-      points_loop:=[soln];
-
-    else
-
-      /*V2:=VectorSpace(Rationals(),2);
-      if lp_size eq 2 and Set([ IsIndependent([V2!obj[1],V2!row]) : row in Rows(lhs) ]) eq {true} then
-
-        L := LPProcess(k, lp_size);
-        SetObjectiveFunction(L, obj);
-        AddConstraints(L, lhs, rhs : Rel := "ge");
-        for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
+    if Set(cvals) ne Set([0]) then
+      //decide if solution is going to be (0,0,0)
+      if Integral eq false then
+        L:=MinimiseL1ToLinearProgram(lhs, -rhs);
         soln,state:=Solution(L);
         assert state eq 0;
-        points_loop:=[soln];*/
-
-      //else
-
-      if Speedy eq true then
-
-        L := LPProcess(k, lp_size);
-        SetObjectiveFunction(L, obj);
-        AddConstraints(L, lhs, rhs : Rel := "ge");
-        //UnsetBounds(L) doesn't work
-        //These are lower bounds on the solution
-        for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
-        soln,state:=Solution(L);
+        soln:= [ Eltseq(soln)[i] : i in [1..NumberOfColumns(lhs)] ];
         points_loop:=[soln];
 
       else
 
-        halfspaces:=[ HalfspaceToPolyhedron(Eltseq(Rows(lhs)[i]),Eltseq(rhs)[i]) : i in [1..#Rows(lhs)] ];
-        poly:= &meet[ POL : POL in halfspaces ];
-        //find the minimum of the objective function in the region, either using integral vertices or the linear program
+        /*V2:=VectorSpace(Rationals(),2);
+        if lp_size eq 2 and Set([ IsIndependent([V2!obj[1],V2!row]) : row in Rows(lhs) ]) eq {true} then
 
-        L := LPProcess(k, lp_size);
-        SetObjectiveFunction(L, obj);
-        AddConstraints(L, lhs, rhs : Rel := "ge");
-        //UnsetBounds(L) doesn't work
-        //These are lower bounds on the solution
-        for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
-        soln,state:=Solution(L);
-        //ProfilePrintByTotalTime(:Max:=40);
-        assert state eq 0;
-        min:=EvaluateAt(L,soln);
+          L := LPProcess(k, lp_size);
+          SetObjectiveFunction(L, obj);
+          AddConstraints(L, lhs, rhs : Rel := "ge");
+          for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
+          soln,state:=Solution(L);
+          assert state eq 0;
+          points_loop:=[soln];*/
 
-        //Now we intersect our polyhedron with the 'plane of minimal solutions'
-        minimal_hyperplane := HyperplaneToPolyhedron(Eltseq(obj),min);
-        poly := poly meet minimal_hyperplane;
-        int_poly := IntegralPart(poly);
-        assert IsEmpty(poly) eq false;
-        assert IsPolytope(poly);
-        min_points:=Setseq(Points(int_poly));
-        points_loop:=min_points;
-        //all of the points at which the objective function is minimal.
+        //else
+
+        if Speedy eq true then
+
+          L := LPProcess(k, lp_size);
+          SetObjectiveFunction(L, obj);
+          AddConstraints(L, lhs, rhs : Rel := "ge");
+          //UnsetBounds(L) doesn't work
+          //These are lower bounds on the solution
+          for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
+          soln,state:=Solution(L);
+          points_loop:=[soln];
+
+        else
+
+          //Need to remove the spurious ones that are all zero already
+          halfspaces:=[ HalfspaceToPolyhedron(Eltseq(Rows(lhs)[i]),Eltseq(rhs)[i]) : i in [1..#Rows(lhs)] ];
+          poly:= &meet[ POL : POL in halfspaces ];
+          //find the minimum of the objective function in the region, either using integral vertices or the linear program
+
+          L := LPProcess(k, lp_size);
+          SetObjectiveFunction(L, obj);
+          AddConstraints(L, lhs, rhs : Rel := "ge");
+          //AddConstraints(L, Matrix(k,1,3,[0,1,0]),  Matrix(k,1,1,[0]) : Rel := "eq"); //fix one variables.
+          //UnsetBounds(L) doesn't work
+          //These are lower bounds on the solution
+          for i in [1..lp_size] do SetLowerBound(L, i, k!-10000); end for;
+          soln,state:=Solution(L);
+          //ProfilePrintByTotalTime(:Max:=40);
+          assert state eq 0;
+          min:=EvaluateAt(L,soln);
+
+          //Now we intersect our polyhedron with the 'plane of minimal solutions'
+          minimal_hyperplane := HyperplaneToPolyhedron(Eltseq(obj),min);
+          poly := poly meet minimal_hyperplane;
+          //poly := poly meet HyperplaneToPolyhedron([0,1,0],0);
+          int_poly := IntegralPart(poly);
+          assert IsEmpty(poly) eq false;
+          assert IsPolytope(poly);
+          min_points:=Setseq(Points(int_poly));
+          points_loop:=min_points;
+          //all of the points at which the objective function is minimal.
+        end if;
+        //end if;
       end if;
-      //end if;
-    end if;
 
-    Append(~minimal_solutions,points_loop);
-    //all triples of ideals to try rescaling by
-    rescaling_ideals:=&cat[ [ [ (ideals[i])*(pp^Eltseq(pt)[i]) : i in [1..#Eltseq(pt)] ] : pt in points_loop ] : ideals in rescaling_ideals ];
+      Append(~minimal_solutions,points_loop);
+      //all triples of ideals to try rescaling by
+      rescaling_ideals:=&cat[ [ [ (ideals[i])*(pp^Eltseq(pt)[i]) : i in [1..#Eltseq(pt)] ] : pt in points_loop ] : ideals in rescaling_ideals ];
+    end if;
   end for;
 
   //for each variable create all possible elements to scale by.
@@ -499,34 +515,29 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=f
   for ab in all_rescalings do
     if ClearDenominators eq true then
       guv:=Evaluate(f,[ab[i]*variables[i] : i in [1..n]]);
-      // JV: possibly redundantly, clear denominators one last time
-      jj := (ideal<ZK | Coefficients(guv)>)^-1;
-      jprinbl, j := IsPrincipal(jj);
-      if not jprinbl then
-        js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
-      else
-        js:=[j];
-      end if;
-
-      for j in js do
-        guv *:= j;
-        Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
-      end for;
     else
-      guv:=Evaluate(new_f,[ab[i]*variables[i] : i in [1..n]])*ab[n+1];
-      jj := (ideal<ZK | Coefficients(guv)>)^-1;
-      jprinbl, j := IsPrincipal(jj);
-      if not jprinbl then
-        js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
-      else
-        js:=[j];
-      end if;
-
-      for j in js do
-        guv *:= j;
-        Append(~new_fuvs, <#Sprint(guv),guv,ab>);
-      end for;
+      guv:=Evaluate(f,[ab[i]*variables[i] : i in [1..n]])*ab[n+1];
     end if;
+    // JV: possibly redundantly, clear denominators one last time
+    jj := (ideal<ZK | Coefficients(guv)>)^-1;
+    jprinbl, j := IsPrincipal(jj);
+    if not jprinbl then
+      js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
+    else
+      js:=[j];
+    end if;
+
+    for j in js do
+      guv *:= j;
+      if ClearDenominators eq true then
+        Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
+      else
+        cd:=ab;
+        c:=cd[n+1]; Prune(~cd);
+        Append(~cd,c*j);
+        Append(~new_fuvs, <#Sprint(guv),guv,cd>);
+      end if;
+    end for;
   end for;
 
   Sort(~new_fuvs);
@@ -593,6 +604,9 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
     abs_coef:=Matrix(k1,abs_coef);
 
     L:=MinimiseL1ToLinearProgram(abs_coef, constants);
+    //fix_var:=[0,1] cat [0: i in [1..NumberOfVariables(L)-2]]; fix a variable
+    //AddConstraints(L, Matrix(k1,1,NumberOfVariables(L),fix_var),  Matrix(k1,1,1,[0]) : Rel := "eq");
+
     soln,state:=Solution(L);
     assert state eq 0;
     soln:= [ Eltseq(soln)[i] : i in [1..(var_size+1)*#UU] ];
