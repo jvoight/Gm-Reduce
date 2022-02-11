@@ -1,5 +1,3 @@
-//load "reducecurve.m";
-
 // Belyi maps downloaded from the LMFDB on 21 January 2022.
 // Magma code for Belyi map with label 9T32-9_3.3.1.1.1_7.1.1-a
 

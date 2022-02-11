@@ -1,6 +1,3 @@
-load "reducecurve.m";
-Attach("monomials.m");
-
 // Belyi maps downloaded from the LMFDB on 21 January 2022.
 // Magma code for Belyi map with label 8T50-6.1.1_6.2_2.2.2.1.1-a
 
