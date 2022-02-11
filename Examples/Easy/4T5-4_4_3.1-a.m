@@ -1,4 +1,4 @@
-
+AttachSpec("spec");
 // Belyi maps downloaded from the LMFDB on 28 January 2022.
 // Magma code for Belyi map with label 4T5-4_4_3.1-a
 
@@ -37,7 +37,7 @@ support:=[];
 for xx in SmallFunctions(PsQsRs, 2*Genus(X)+1) do
   S3orbit:=[ phi, 1/phi, 1-phi, phi/(phi-1), 1-1/phi, 1/(1-phi)  ];
   for belyimap in [S3orbit[1]] do
-    f := model(belyimap, xx); f;
+    f := model(belyimap, xx);
     Append(~ffs,<#Sprint(f),f, Index(S3orbit, belyimap), Degree(xx) >);
     sup,mult:=Support(Divisor(xx));
     Append(~support, mult);
@@ -48,6 +48,12 @@ ParallelSort(~ffs,~support);
 shortest_ffs:=[ ffs[i] : i in [1..Min(#ffs,5)] ];
 fuv:=shortest_ffs[1,2];
 
-padic_redfuv:= reducemodel_padic(fuv);
-unit_redfuv := reducemodel_units(padic_redfuv);
+
+fp1:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false);
+fp2:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);
+fp3:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false);
+
+
+
+unit_redfuv := reducemodel_units(fp3);
 fuv_display := PolynomialToFactoredString(MultivariateToUnivariate(unit_redfuv));

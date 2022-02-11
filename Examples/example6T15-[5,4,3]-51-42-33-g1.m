@@ -25,7 +25,7 @@ support:=[];
 for xx in SmallFunctions(PsQsRs, 2*Genus(X)+1) do
   S3orbit:=[ phi, 1/phi, phi-1, 1/(phi-1), 1/phi -1 ];
   for belyimap in [S3orbit[1]] do
-    f := ReduceModel(belyimap, xx); f;
+    f := model(belyimap, xx);
     Append(~ffs,<#Sprint(f),f, Index(S3orbit, belyimap), Degree(xx) >);
     sup,mult:=Support(Divisor(xx));
     Append(~support, mult);
@@ -41,3 +41,41 @@ unit_redfuv := reducemodel_units(padic_redfuv);
 fuv_display := PolynomialToFactoredString(MultivariateToUnivariate(unit_redfuv));
 
 ProfilePrintByTotalTime(:Max:=40);
+
+_<t,x>:=PolynomialRing(K,2);
+fuv:=1/95551488*(-11132812500*nu + 35205078125)*t^2 + 1/3456*(884375*nu -
+    2796875)*t*x^3 + 1/110592*(-136250000*nu + 430859375)*t*x^2 +
+    1/442368*(975859375*nu - 3085937500)*t*x + 1/23887872*(-30630859375*nu +
+    96863281250)*t + x^6 + 1/4*(-15*nu + 50)*x^5;
+
+fp1:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false);
+fp2:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=true);
+fp3:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);
+fp4:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false);
+
+[ [ Valuation(cc,pp) : cc in Coefficients(fp1) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(fp2) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(fp3) ] : pp in SS ];
+[ [ Valuation(cc,pp) : cc in Coefficients(fp4) ] : pp in SS ];
+
+> hh;
+1/177147*t^2*x^7 + 1/2187*t*x^5 + 1/27*t*x + 1/1024
+> reducemodel_padic(hh : Integral:=true, ClearDenominators:=False);
+
+>> reducemodel_padic(hh : Integral:=true, ClearDenominators:=False);
+                                                             ^
+User error: Identifier 'False' has not been declared or assigned
+> reducemodel_padic(hh : Integral:=true, ClearDenominators:=false);
+t^2*x^7 + 256*t*x^5 + t*x + 1
+[
+    9/4096*ZK.1,
+    12/1*ZK.1,
+    1024/1*ZK.1
+]
+> reducemodel_padic(hh : Integral:=true, ClearDenominators:=true);
+1024*t^2*x^7 + 1024*t*x^5 + 1024*t*x + 1
+[
+    9/1*ZK.1,
+    3/1*ZK.1,
+    1024/1*ZK.1
+]
