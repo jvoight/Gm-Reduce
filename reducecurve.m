@@ -181,7 +181,6 @@ intrinsic PlaneModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolEl
   return model(phi,x_op);
 end intrinsic;
 
-// copy-pasta-ed from BelyiDB's LLL.m
 function PlaneModelGroebner(phi, x_op)
   //{Given a Belyi map phi, return a plane model for its domain such that t is the Belyi map}
   KC := Parent(phi);
@@ -341,9 +340,14 @@ intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMa
 end intrinsic;
 
 
+
 intrinsic CoefficientSupport(f::RngMPolElt) -> SeqEnum
   {returns all of the primes ideals with nonzero valuation in the coefficients}
-  K:=BaseRing(Parent(f));
+  if BaseRing(Parent(f)) eq Rationals() then
+    K:=RationalsAsNumberField();
+  else
+    K := BaseRing(Parent(f));
+  end if;
   S := &cat[TrialDivision(Integers()!Norm(Numerator(s))) : s in Coefficients(f) | s ne 0 ]
      cat &cat[TrialDivision(Integers()!Norm(Denominator(s))) : s in Coefficients(f) | s ne 0 ];
   S := SequenceToSet([s[1] : s in S]);
@@ -352,14 +356,20 @@ intrinsic CoefficientSupport(f::RngMPolElt) -> SeqEnum
 end intrinsic;
 
 
+
 intrinsic CoefficientValuations(f::RngMPolElt) -> SeqEnum
   {the valuations of each coefficient at every prime in CoefficientSupport(f)}
-  return [ [ Valuation(cc,pp) : cc in Coefficients(f) ] : pp in CoefficientSupport(f) ];
+  if BaseRing(Parent(f)) eq Rationals() then
+    K:=RationalsAsNumberField();
+  else
+    K := BaseRing(Parent(f));
+  end if;
+  return [ [ Valuation(cc,pp) : cc in Coefficients(ChangeRing(f,K)) ] : pp in CoefficientSupport(f) ];
 end intrinsic;
 
 
 
-reducemodel_padic:=function(f);
+reducemodel_padic_classgroup:=function(f);
   //start again and include the class group
   K := BaseRing(Parent(f));
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
@@ -384,14 +394,38 @@ reducemodel_padic:=function(f);
   rescaling_ideals:=[[ 1*ZK : i in [1..n] ]];
   lp_size:=n;
 
-  return f;
+
+  /*  Cl,mp:=ClassGroup(K);
+    cl_gen:=Cl.1;
+
+    all_rescalings:=[];
+    for vv in rescaling_ideals do
+      scaling_factors:=[];
+      for aa in vv do
+        Inverse(mp)(aa);
+        principalize:=mp(-Inverse(mp)(aa)); //make sure this is positive exponent
+        id:=aa*principalize;
+        aprin,a:=IsPrincipal(id);
+        assert aprin;
+        Append(~scaling_factors,a);
+      end for;
+      Append(~all_rescalings,scaling_factors);
+    end for;
+
+
+  return f;*/
 end function;
 
 
 
-intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominators:=true, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
   {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
-  K := BaseRing(Parent(f));
+  /*Options: Integral, ClearDenominator, Minkowski, Speedy */
+  if BaseRing(Parent(f)) eq Rationals() then
+    K:=RationalsAsNumberField();
+  else
+    K := BaseRing(Parent(f));
+  end if;
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
   n:=#variables;
   ZK := Integers(K);
@@ -410,7 +444,7 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
     lhs_coefs:= mexps;
     lhs := Matrix(k, lhs_coefs);     //constraints
     rel := Matrix(k,[[1] : ef in mexps]);  //lhs greater than rhs
-    rescaling_ideals:=[[ 1*ZK : i in [1..n] ]];
+    rescaling_ideals:=[[ 1 : i in [1..n] ]];
     lp_size:=n;
   else
     coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
@@ -425,7 +459,7 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
     lhs_coefs:= [ A cat [1] : A in mexps ];
     lhs := Matrix(k, lhs_coefs);     //constraints
     rel := Matrix(k,[[1] : ef in mexps]);
-    rescaling_ideals:=[[ 1*ZK : i in [1..n+1] ]];
+    rescaling_ideals:=[[ 1 : i in [1..n+1] ]];
     lp_size:=n+1;
   end if;
 
@@ -514,28 +548,9 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
       rescaling_ideals:=&cat[ [ [ (ideals[i])*(pp^Eltseq(pt)[i]) : i in [1..#Eltseq(pt)] ] : pt in points_loop ] : ideals in rescaling_ideals ];
     end if;
   end for;
-
-  Cl,mp:=ClassGroup(K);
-  if Order(Cl) ne 1 then
-    cl_gen:=Cl.1;
-  end if;
-
-  all_rescalings:=[];
-  for vv in rescaling_ideals do
-    scaling_factors:=[];
-    for aa in vv do
-      Inverse(mp)(aa);
-      principalize:=mp(-Inverse(mp)(aa)); //make sure this is positive exponent
-      id:=aa*principalize;
-      aprin,a:=IsPrincipal(id);
-      assert aprin;
-      Append(~scaling_factors,a);
-    end for;
-    Append(~all_rescalings,scaling_factors);
-  end for;
   //for each variable create all possible elements to scale by.
 
-/*  all_rescalings:=[];
+  all_rescalings:=[];
   for vv in rescaling_ideals do
     scaling_factors:= [ ];
     for w in vv do
@@ -562,36 +577,30 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
     assert #all_lists eq &*[ #A : A in scaling_factors ];
     Append(~all_rescalings,all_lists);
   end for;
-  all_rescalings:=&cat(all_rescalings);*/
+  all_rescalings:=&cat(all_rescalings);
 
   new_fuvs:=[];
   for ab in all_rescalings do
     if ClearDenominators eq true then
-      guv:=Evaluate(f,[ab[i]*variables[i] : i in [1..n]]);
+      guv:=Evaluate(f,[(BaseRing(Parent(f))!ab[i])*variables[i] : i in [1..n]]);
+      jj := (ideal<ZK | Coefficients(guv)>)^-1;
+      jprinbl, j := IsPrincipal(jj);
+      j:=BaseRing(Parent(f))!j;
+      if not jprinbl then
+        js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
+      else
+        js:=[j];
+      end if;
+      for j in js do
+        guv *:= j;
+        Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
+      end for;
     else
-      guv:=Evaluate(f,[ab[i]*variables[i] : i in [1..n]])*ab[n+1];
+      guv:=Evaluate(f,[(BaseRing(Parent(f))!ab[i])*variables[i] : i in [1..n]])*BaseRing(Parent(f))!ab[n+1];
+      Append(~new_fuvs, <#Sprint(guv),guv,ab>);
     end if;
     // JV: possibly redundantly, clear denominators one last time
-    jj := (ideal<ZK | Coefficients(guv)>)^-1;
-    jprinbl, j := IsPrincipal(jj);
-    if not jprinbl then
-      js := IdealShortVectorsProcess(jj, 0, 2: Minkowski:=Minkowski);
-    else
-      js:=[j];
-    end if;
-
-    for j in js do
-      guv *:= j;
-      if ClearDenominators eq true then
-        Append(~new_fuvs, <#Sprint(guv),guv,ab cat [j]>);
-      else
-        cd:=ab;
-        c:=cd[n+1]; Prune(~cd);
-        Append(~cd,c*j);
-        Append(~new_fuvs, <#Sprint(guv),guv,cd>);
-      end if;
     end for;
-  end for;
 
   Sort(~new_fuvs);
   new_fuv:=new_fuvs[1,2];

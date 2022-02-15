@@ -12,5 +12,13 @@ F_old := F;
 F := LCM(dens)*F;
 printf "integralized F = %o\n", F;
 
-F_padic := reducemodel_padic(F);
+F_padic := reducemodel_padic(F : Integral:=true, ClearDenominators:=false);
 F_unit := reducemodel_units(F_padic);
+
+F_padic;
+/*390625*x*y^17 + 5859375*x*y^16 + 43125000*x*y^15 + 224375000*x*y^14 +
+    919687500*x*y^13 + 3018812500*x*y^12 + 8201975000*x*y^11 +
+    18646725000*x*y^10 + 34614733750*x*y^9 + 52359626250*x*y^8 +
+    60286491000*x*y^7 + 41159017000*x*y^6 - 1267980500*x*y^5 - 60264765900*x*y^4
+    - 85488281560*x*y^3 - 54201132040*x*y^2 - 16350628239*x*y - 1908029761*x +
+    5*y^2 + 27*/
