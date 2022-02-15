@@ -174,6 +174,8 @@ intrinsic ReduceModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolE
   return f_unit;
 end intrinsic;
 
+//add intrinsic to loop over small functions and output ReduceModel();
+
 intrinsic PlaneModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
   return model(phi,x_op);
@@ -355,7 +357,38 @@ intrinsic CoefficientValuations(f::RngMPolElt) -> SeqEnum
 end intrinsic;
 
 
-intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=true, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
+
+reducemodel_padic:=function(f);
+  //start again and include the class group
+  K := BaseRing(Parent(f));
+  variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
+  n:=#variables;
+  ZK := Integers(K);
+  k:=Integers();
+
+  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
+  mexps := [ Exponents(m[2]) : m in coefs_and_monomials ];
+  m:=#mexps;
+  coefs:=[ K!a[1] : a  in coefs_and_monomials ];
+  //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+  obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ];
+
+  SS:=CoefficientSupport(f);
+
+  //clear denominators after the fact
+  obj := Matrix(k,1,n, obj_coefs);
+  lhs_coefs:= mexps;
+  lhs := Matrix(k, lhs_coefs);     //constraints
+  rel := Matrix(k,[[1] : ef in mexps]);  //lhs greater than rhs
+  rescaling_ideals:=[[ 1*ZK : i in [1..n] ]];
+  lp_size:=n;
+
+  return f;
+end function;
+
+
+
+intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominators:=true, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
   {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
   K := BaseRing(Parent(f));
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
