@@ -179,6 +179,7 @@ intrinsic PlaneModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolEl
   return model(phi,x_op);
 end intrinsic;
 
+// copy-pasta-ed from BelyiDB's LLL.m
 function PlaneModelGroebner(phi, x_op)
   //{Given a Belyi map phi, return a plane model for its domain such that t is the Belyi map}
   KC := Parent(phi);
@@ -482,7 +483,9 @@ intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=t
   end for;
 
   Cl,mp:=ClassGroup(K);
-  cl_gen:=Cl.1;
+  if Order(Cl) ne 1 then
+    cl_gen:=Cl.1;
+  end if;
 
   all_rescalings:=[];
   for vv in rescaling_ideals do
