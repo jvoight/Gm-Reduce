@@ -357,68 +357,98 @@ end intrinsic;
 
 
 
-intrinsic CoefficientValuations(f::RngMPolElt) -> SeqEnum
+intrinsic CoefficientValuations(f::RngMPolElt : primes:=CoefficientSupport(f)) -> SeqEnum
   {the valuations of each coefficient at every prime in CoefficientSupport(f)}
   if BaseRing(Parent(f)) eq Rationals() then
     K:=RationalsAsNumberField();
   else
     K := BaseRing(Parent(f));
   end if;
-  return [ [ Valuation(cc,pp) : cc in Coefficients(ChangeRing(f,K)) ] : pp in CoefficientSupport(f) ];
+
+  return [ [ Valuation(cc,pp) : cc in Coefficients(ChangeRing(f,K)) ] : pp in primes ];
 end intrinsic;
 
 
-
-reducemodel_padic_classgroup:=function(f);
-  //start again and include the class group
-  K := BaseRing(Parent(f));
+intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
+  {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
+  if BaseRing(Parent(f)) eq Rationals() then
+    K:=RationalsAsNumberField();
+  else
+    K := BaseRing(Parent(f));
+  end if;
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
-  n:=#variables;
+  var_size:=#variables;
   ZK := Integers(K);
   k:=Integers();
+  h:=ClassNumber(K);
+  Cl,mp:=ClassGroup(K);
+  pm:=Inverse(mp);
 
-  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
+  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] ];
   mexps := [ Exponents(m[2]) : m in coefs_and_monomials ];
   m:=#mexps;
   coefs:=[ K!a[1] : a  in coefs_and_monomials ];
   //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
-  obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ];
 
   SS:=CoefficientSupport(f);
+  SS:= [ pp : pp in SS | Set([Valuation(cc,pp) : cc in coefs]) notin [{0,1},{0}] ];
 
-  //clear denominators after the fact
-  obj := Matrix(k,1,n, obj_coefs);
-  lhs_coefs:= mexps;
-  lhs := Matrix(k, lhs_coefs);     //constraints
-  rel := Matrix(k,[[1] : ef in mexps]);  //lhs greater than rhs
-  rescaling_ideals:=[[ 1*ZK : i in [1..n] ]];
-  lp_size:=n;
+  lp_size:=(var_size+1)*#SS+var_size+1;
+  obj:= Matrix(k,1,lp_size,&cat[ [ &+[ m[i] : m in mexps] : i in [1..var_size] ] cat [m] : j in [1..#SS] ] cat [0 : w in [1..var_size+1]]);
+  L := LPProcess(k, lp_size);
+  SetObjectiveFunction(L, obj);
 
+  extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..var_size+1] ];
 
-  /*  Cl,mp:=ClassGroup(K);
-    cl_gen:=Cl.1;
-
-    all_rescalings:=[];
-    for vv in rescaling_ideals do
-      scaling_factors:=[];
-      for aa in vv do
-        Inverse(mp)(aa);
-        principalize:=mp(-Inverse(mp)(aa)); //make sure this is positive exponent
-        id:=aa*principalize;
-        aprin,a:=IsPrincipal(id);
-        assert aprin;
-        Append(~scaling_factors,a);
-      end for;
-      Append(~all_rescalings,scaling_factors);
+  for i in [1..#SS] do
+    for j in [1..m] do
+      lhs:=Insert(extra_zeroes, (var_size+1)*i-var_size,(var_size+1)*i-var_size-1,mexps[j] cat [1]);
+      lhs:=Matrix(k,1,(var_size+1)*(#SS+1),lhs);
+  		rhs:= Matrix(k,1,1,[-Valuation(coefs[j],SS[i])]);
+  		AddConstraints(L, lhs, rhs : Rel := "ge");
     end for;
+  end for;
+
+  for w in [1..var_size+1] do
+    //add in the constraints to be principal one variable at a time
+    zeroes:= [ 0 : t in [1..var_size] ];
+    principal_constraint:=&cat[ Insert(zeroes, w,w-1, [ Eltseq(pm(SS[j]))[1]]) : j in [1..#SS] ];
+    principal_constraint:=principal_constraint cat Insert(zeroes, w,w-1, [h]);
+    principal_constraint_lhs:=Matrix(k,1,(var_size+1)*(#SS+1),principal_constraint);
+    principal_constraint_rhs:=Matrix(k,1,1,[0]);
+    AddConstraints(L, principal_constraint_lhs, principal_constraint_rhs : Rel := "eq");
+  end for;
+
+  for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
+
+  soln,state:=Solution(L);
+  assert state eq 0;
+  soln:=Eltseq(soln);
+
+  soln_ideals:=[];
+  soln_exponents:=[];
+  for r in [1..var_size+1] do
+    Append(~soln_exponents, [ soln[(var_size+1)*(j-1)+r] : j in [1..#SS] ] );
+    Append(~soln_ideals,&*[ SS[j]^soln[(var_size+1)*(j-1)+r] : j in [1..#SS] ]);
+  end for;
+
+  scaling_factors:=[];
+  for aa in soln_ideals do
+    tr,a:=IsPrincipal(aa);
+    Append(~scaling_factors,a);
+  end for;
+
+  guv:=Evaluate(f,[(BaseRing(Parent(f))!scaling_factors[i])*variables[i] : i in [1..var_size]])*BaseRing(Parent(f))!scaling_factors[var_size+1];
+
+  return guv, scaling_factors;
+end intrinsic;
 
 
-  return f;*/
-end function;
 
 
 
-intrinsic reducemodel_padic(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
+
+intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
   {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
   /*Options: Integral, ClearDenominator, Minkowski, Speedy */
   if BaseRing(Parent(f)) eq Rationals() then
