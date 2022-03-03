@@ -48,34 +48,5 @@ fuv:=1/95551488*(-11132812500*nu + 35205078125)*t^2 + 1/3456*(884375*nu -
     1/442368*(975859375*nu - 3085937500)*t*x + 1/23887872*(-30630859375*nu +
     96863281250)*t + x^6 + 1/4*(-15*nu + 50)*x^5;
 
-fp1:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=false);
-fp2:=reducemodel_padic(fuv : Integral:=false, ClearDenominators:=true);
-fp3:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=true);
-fp4:=reducemodel_padic(fuv : Integral:=true, ClearDenominators:=false);
-
-[ [ Valuation(cc,pp) : cc in Coefficients(fp1) ] : pp in SS ];
-[ [ Valuation(cc,pp) : cc in Coefficients(fp2) ] : pp in SS ];
-[ [ Valuation(cc,pp) : cc in Coefficients(fp3) ] : pp in SS ];
-[ [ Valuation(cc,pp) : cc in Coefficients(fp4) ] : pp in SS ];
-
-> hh;
-1/177147*t^2*x^7 + 1/2187*t*x^5 + 1/27*t*x + 1/1024
-> reducemodel_padic(hh : Integral:=true, ClearDenominators:=False);
-
->> reducemodel_padic(hh : Integral:=true, ClearDenominators:=False);
-                                                             ^
-User error: Identifier 'False' has not been declared or assigned
-> reducemodel_padic(hh : Integral:=true, ClearDenominators:=false);
-t^2*x^7 + 256*t*x^5 + t*x + 1
-[
-    9/4096*ZK.1,
-    12/1*ZK.1,
-    1024/1*ZK.1
-]
-> reducemodel_padic(hh : Integral:=true, ClearDenominators:=true);
-1024*t^2*x^7 + 1024*t*x^5 + 1024*t*x + 1
-[
-    9/1*ZK.1,
-    3/1*ZK.1,
-    1024/1*ZK.1
-]
+fp1:=reducemodel_padic(fuv);
+fu1:=reducemodel_units(fp1);
