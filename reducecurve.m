@@ -1,3 +1,4 @@
+AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
 SetClassGroupBounds("GRH");
 
 intrinsic SmallFunctionsBound(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
@@ -79,12 +80,13 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   fuv := Resultant(fu,fv,z);
   //groebner basis? 1/phi here etc
   /*
-  _<u> := PolynomialRing(K);
-  _<v> := PolynomialRing(Parent(u));
-  cuv := Coefficients(fuv);
-  muv := Monomials(fuv);
-  return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
+    _<u> := PolynomialRing(K);
+    _<v> := PolynomialRing(Parent(u));
+    cuv := Coefficients(fuv);
+    muv := Monomials(fuv);
+    return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
   */
+  // determine which factor of the result has roots x_op and phi
   fuvFact := Factorization(fuv);
   if #fuvFact gt 1 then
     for j := 1 to #fuvFact do
@@ -107,10 +109,16 @@ end intrinsic;
 
 intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
-  f_plane:=model(phi,x_op);
+  f_plane := model(phi,x_op);
   f_padic := reducemodel_padic(f_plane);
   f_unit := reducemodel_units(f_padic);
   return f_unit;
+end intrinsic;
+
+intrinsic ReducedModels(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
+  {}
+  phis := S3Orbit(phi);
+  return [* ReducedModel(el,x_op) : el in phis *];
 end intrinsic;
 
 intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) -> SeqEnum
@@ -122,8 +130,10 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   xs_sorted := SortSmallFunctions(phi,xs);
   reduced_models :=[];
   for xx in [ xs_sorted[i] : i in [1..effort] ] do
-    fred:=ReducedModel(phi, xx);
-    Append(~reduced_models,<#Sprint(fred),fred>);
+    freds:=ReducedModels(phi, xx);
+    for fred in freds do
+      Append(~reduced_models,<#Sprint(fred),fred>);
+    end for;
   end for;
 
   return reduced_models;
@@ -200,7 +210,6 @@ intrinsic BelyiObjectiveFunction(fuv::RngMPolElt) -> RngMPolElt
   assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
   return (&+[ m[1] : m in mexps])*x1 + (&+[ m[2] : m in mexps])*x2 + #mexps*x3;
 end intrinsic;
-
 
 intrinsic MultivariateToUnivariate(f::RngMPolElt) -> RngUPolElt
   {turns an element f in K[x,t] into an element K[x][t]}
