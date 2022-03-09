@@ -22,6 +22,26 @@ SetProfile(true);
 ffs:=[];
 multiplicities:=[];
 support:=[];
+
+effort:=15; degree:=2;
+//Ceiling((Genus(x)+3)/2);
+//that's a minimum, keep going if it's not good/ there aren't enough functions?
+xs:=SmallFunctions(PsQsRs, degree);
+xs_sorted:=SortSmallFunctions(phi,xs);
+#xs;
+
+reduced_models:=[];
+for xx in [ xs_sorted[i] : i in [1..#xs] ] do
+  fred:=ReduceModel(phi, xx);
+  Append(~reduced_models,<#Sprint(fred),fred>);
+end for;
+
+reduce_model_sorted:=Sort(reduced_models);
+f:=reduce_model_sorted[1];
+Index(reduced_models,f);
+reduced_models[1,2];
+
+
 for xx in SmallFunctions(PsQsRs, 2*Genus(X)+1) do
   S3orbit:=[ phi, 1/phi, phi-1, 1/(phi-1), 1/phi -1 ];
   for belyimap in [S3orbit[1]] do
@@ -50,3 +70,5 @@ fuv:=1/95551488*(-11132812500*nu + 35205078125)*t^2 + 1/3456*(884375*nu -
 
 fp1:=reducemodel_padic(fuv);
 fu1:=reducemodel_units(fp1);
+/* fu1:= 16*t^2 + (40*nu - 112)*t*x^3 + (-10*nu + 55)*t*x^2 + (-8*nu - 37)*t*x + (3*nu +
+    10)*t + x^6 + (nu + 5)*x^5 */

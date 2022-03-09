@@ -1,4 +1,4 @@
-//AttachSpec("../endomorphisms/endomorphisms/magma/spec"); 
+//AttachSpec("../endomorphisms/endomorphisms/magma/spec");
 //import "../endomorphisms/endomorphisms/magma/puiseux/FractionalCRT.m": RandomSplitPrime;
 // have to change if endomorphisms repo is elsewhere
 AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
@@ -25,7 +25,7 @@ intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) ->
     Append(~KX_FF_gens, KX_FF.i);
   end for;
 
-  // reduce map 
+  // reduce map
   num_cs, num_mons := CoefficientsAndMonomials(Numerator(phi));
   num_pows := [Exponents(el) : el in num_mons];
   den_cs, den_mons := CoefficientsAndMonomials(Denominator(phi));
@@ -133,7 +133,7 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
   else
     P := Prime;
   end if;
-  printf "prime used P = %o\n", P;
+  //printf "prime used P = %o\n", P;
 
   // reduce small functions by P
   X_FF, phi_FF := ReduceRationalFunction(X, phi, P);
@@ -146,11 +146,11 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
   for i := 1 to #xs do
     x_op := xs[i];
     x_op_FF := xs_FF[i];
-    print "computing model over finite field";
+    //print "computing model over finite field";
     F_res_FF := PlaneModel(phi_FF, x_op_FF);
     mons_FF := Monomials(F_res_FF);
     Append(~Nmons, #mons_FF);
-    printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
+    //printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
   end for;
   xs_sorted := xs;
   ParallelSort(~Nmons, ~xs_sorted);
