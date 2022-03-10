@@ -1,4 +1,4 @@
-AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+//AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
 SetClassGroupBounds("GRH");
 
 intrinsic SmallFunctionsBound(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
@@ -115,7 +115,7 @@ intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPol
   return f_unit;
 end intrinsic;
 
-intrinsic ReducedModels(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
+intrinsic ReducedModelsS3Orbit(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
   /*
     phis := S3Orbit(phi);
@@ -124,6 +124,15 @@ intrinsic ReducedModels(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPo
   f := ReducedModel(phi, x_op);
   return S3Orbit(f);
 end intrinsic;
+
+intrinsic ReducedModelS3Orbit(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
+  {find a reduced model of phi w.r.t. to x_op, compute the S3-orbit and return the smallest one}
+  s3_orbit:=ReducedModelsS3Orbit(phi,x_op);
+  s3_size:= [ < #Sprint(g), g > : g in s3_orbit ];
+  Sort(~s3_size);
+  return s3_size[1,2];
+end intrinsic;
+
 
 intrinsic ComputeThirdRamificationValue(f::RngMPolElt) -> Any
   {Given a polynomial f(t,x) defining a plane curve where t is a 3-point branched cover ramified over 0, oo, and s, return s}
@@ -169,7 +178,7 @@ end intrinsic;
 
 intrinsic S3Orbit(f::RngMPolElt) -> SeqEnum
   {}
-  return [* S3Action(el, f) : el in Sym(3) *];
+  return [ Parent(f)!S3Action(el, f) : el in Sym(3) ];
 end intrinsic;
 
 intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) -> SeqEnum
@@ -181,10 +190,8 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   xs_sorted := SortSmallFunctions(phi,xs);
   reduced_models :=[];
   for xx in [ xs_sorted[i] : i in [1..effort] ] do
-    freds := ReducedModels(phi, xx);
-    for fred in freds do
-      Append(~reduced_models,<#Sprint(fred),fred>);
-    end for;
+    fred := ReducedModelS3Orbit(phi, xx);
+    Append(~reduced_models,<#Sprint(fred),fred>);
   end for;
   return reduced_models;
 end intrinsic;
