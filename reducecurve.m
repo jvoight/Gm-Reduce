@@ -117,8 +117,59 @@ end intrinsic;
 
 intrinsic ReducedModels(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
-  phis := S3Orbit(phi);
-  return [* ReducedModel(el,x_op) : el in phis *];
+  /*
+    phis := S3Orbit(phi);
+    return [* ReducedModel(el,x_op) : el in phis *];
+  */
+  f := ReducedModel(phi, x_op);
+  return S3Orbit(f);
+end intrinsic;
+
+intrinsic ComputeThirdRamificationValue(f::RngMPolElt) -> Any
+  {Given a polynomial f(t,x) defining a plane curve where t is a 3-point branched cover ramified over 0, oo, and s, return s}
+  C := Curve(AffineSpace(Parent(f)), f);
+  KC<t,x> := FunctionField(C);
+  ram_up := Support(Divisor(Differential(t)));
+  ram_down := [*Evaluate(t, el) : el in ram_up*];
+  ram_other := [el : el in ram_down | el ne 0 and el cmpne Infinity()];
+  ram_other := SetToSequence(SequenceToSet(ram_other));
+  assert #ram_other eq 1;
+  return ram_other[1];
+end intrinsic;
+
+intrinsic S3Action(tau::GrpPermElt, f::RngMPolElt) -> RngMPolElt
+  {}
+  S := Sym(3);
+  assert Parent(tau) eq S;
+
+  R<t,x> := Parent(f);
+  a := ComputeThirdRamificationValue(f);
+  L := Parent(a);
+  RL<t,x> := ChangeRing(R,L);
+  if tau eq S!(1,2) then
+    //return 1-phi;
+    t_ev := a-t;
+  elif tau eq S!(1,3) then
+    //return 1/phi;
+    t_ev := a^2/t;
+  elif tau eq S!(2,3) then
+    //return phi/(phi-1);
+    t_ev := a - a^2/(a-t);
+  elif tau eq S!(1,2,3) then // are these two backwards?
+    //return 1-1/phi;
+    t_ev := a - a^2/t;
+  elif tau eq S!(1,3,2) then // are these two backwards? or right- vs left action?
+    //return 1/(1-phi);
+    t_ev := a^2/(a-t);
+  else
+    t_ev := t;
+  end if;
+  return Numerator(Evaluate(f, [t_ev,x])); // need to re-integralize at the end?
+end intrinsic;
+
+intrinsic S3Orbit(f::RngMPolElt) -> SeqEnum
+  {}
+  return [* S3Action(el, f) : el in Sym(3) *];
 end intrinsic;
 
 intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) -> SeqEnum
@@ -130,12 +181,11 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   xs_sorted := SortSmallFunctions(phi,xs);
   reduced_models :=[];
   for xx in [ xs_sorted[i] : i in [1..effort] ] do
-    freds:=ReducedModels(phi, xx);
+    freds := ReducedModels(phi, xx);
     for fred in freds do
       Append(~reduced_models,<#Sprint(fred),fred>);
     end for;
   end for;
-
   return reduced_models;
 end intrinsic;
 
