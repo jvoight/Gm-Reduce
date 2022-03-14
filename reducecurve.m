@@ -142,8 +142,12 @@ intrinsic ComputeThirdRamificationValue(f::RngMPolElt) -> Any
   ram_down := [*Evaluate(t, el) : el in ram_up*];
   ram_other := [el : el in ram_down | el ne 0 and el cmpne Infinity()];
   ram_other := SetToSequence(SequenceToSet(ram_other));
-  assert #ram_other eq 1;
-  return ram_other[1];
+  assert #ram_other in [0,1];
+  if #ram_other eq 1 then
+    return true, ram_other[1];
+  else
+    return false, _;
+  end if;
 end intrinsic;
 
 intrinsic S3Action(tau::GrpPermElt, f::RngMPolElt) -> RngMPolElt
@@ -152,9 +156,15 @@ intrinsic S3Action(tau::GrpPermElt, f::RngMPolElt) -> RngMPolElt
   assert Parent(tau) eq S;
 
   R<t,x> := Parent(f);
-  a := ComputeThirdRamificationValue(f);
-  L := Parent(a);
-  RL<t,x> := ChangeRing(R,L);
+  bool, a := ComputeThirdRamificationValue(f);
+  if bool then
+    L := Parent(a);
+    assert L eq BaseRing(Parent(f));
+  else
+    a := 1;
+  end if;
+  //RL<t,x> := ChangeRing(R,L);
+  // TODO: fix this when only ramified above 0, oo
   if tau eq S!(1,2) then
     //return 1-phi;
     t_ev := a-t;
@@ -187,11 +197,13 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
   xs := SmallFunctions(PsQsRs, degree);
-  xs_sorted := SortSmallFunctions(phi,xs);
-  reduced_models :=[];
-  for xx in [ xs_sorted[i] : i in [1..effort] ] do
-    fred := ReducedModelS3Orbit(phi, xx);
-    Append(~reduced_models,<#Sprint(fred),fred>);
+  xs_ts_Fs_sorted := SortSmallFunctions(phi,xs);
+  reduced_models := [];
+  for tup in xs_ts_Fs_sorted do
+    x, t, F := Explode(tup);
+    fred := ReducedModel(t, x);
+    printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
+    Append(~reduced_models, [* t, x, fred *]);
   end for;
   return reduced_models;
 end intrinsic;

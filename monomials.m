@@ -1,7 +1,7 @@
 //AttachSpec("../endomorphisms/endomorphisms/magma/spec");
 //import "../endomorphisms/endomorphisms/magma/puiseux/FractionalCRT.m": RandomSplitPrime;
 // have to change if endomorphisms repo is elsewhere
-//AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
 // includes intrinsic S3Action(tau, phi)
 
 intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) -> Any
@@ -120,7 +120,7 @@ intrinsic PrimeForReduction(phi::FldFunFracSchElt, xs : PrimeBound := 0) -> Any
   return P;
 end intrinsic;
 
-intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, PrimeBound := 0) -> SeqEnum
+intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, PrimeBound := 0, effort := 30) -> SeqEnum
   {Given a list xs of functions, compute the size of the monomial support of the resulting curve mod a prime. Return the list of functions sorted by this size.}
 
   KX := Parent(phi);
@@ -143,16 +143,37 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
     Append(~xs_FF, x_FF);
   end for;
   Nmons := [];
+  xs_ts_Fs := [];
   for i := 1 to #xs do
     x_op := xs[i];
     x_op_FF := xs_FF[i];
     //print "computing model over finite field";
     F_res_FF := PlaneModel(phi_FF, x_op_FF);
-    mons_FF := Monomials(F_res_FF);
-    Append(~Nmons, #mons_FF);
+    // S3 Orbit
+    F_orb := S3Orbit(F_res_FF);
+    phi_orb := S3Orbit(phi); // import from Belyi
+    for i := 1 to #F_orb do
+        t := phi_orb[i];
+        F := F_orb[i];
+        mons_FF := Monomials(F);
+        Append(~Nmons, #mons_FF);
+        Append(~xs_ts_Fs, [* x_op, t, F *]);
+    end for;
     //printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
   end for;
-  xs_sorted := xs;
-  ParallelSort(~Nmons, ~xs_sorted);
-  return xs_sorted;
+  xs_ts_Fs_sorted := xs_ts_Fs;
+  ParallelSort(~Nmons, ~xs_ts_Fs_sorted);
+  // check that genus is correct, throw out otherwise
+  g := Genus(X);
+  m := 1;
+  while m le #xs_ts_Fs_sorted and m le effort do 
+    xm, tm, Fm := Explode(xs_ts_Fs_sorted[m]);
+    C_m := Curve(AffineSpace(Parent(Fm)), Fm);
+    if Genus(C_m) eq g then
+      m +:= 1;
+    else
+      Remove(~xs_ts_Fs_sorted, m);
+    end if;
+  end while;
+  return xs_ts_Fs_sorted[1..Min(effort,#xs_ts_Fs_sorted)];
 end intrinsic;
