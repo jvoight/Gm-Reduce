@@ -186,7 +186,7 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   RsandPs := Support(Divisor(phi));
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
-  xs := SmallFunctions(PsQsRs, degree);
+  xs := SmallFunctionsBound(PsQsRs, degree);
   xs_sorted := SortSmallFunctions(phi,xs);
   reduced_models :=[];
   for xx in [ xs_sorted[i] : i in [1..effort] ] do

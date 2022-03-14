@@ -34,7 +34,7 @@ WriteTestToFile:=function(filename,dextra,small_functions_size)
     RsandPs := Support(Divisor(phi));
     RsandQs := Support(Divisor(phi-1));
     PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
-    d_init:=Ceiling((Genus(X)+3)/2);
+    d_init:=Floor((Genus(X)+3)/2);
 
     fred_best:=1;
     ffs:=[];
@@ -86,13 +86,14 @@ WriteTestToFile:=function(filename,dextra,small_functions_size)
   return "";
 end function;
 
-filenames:=BelyiDBFilenames(5);
+filenames:=BelyiDBFilenames(6);
 
 for filename in filenames do
-  WriteTestToFile(filename,1,10);
+  WriteTestToFile(filename,3,20);
 end for;
 
 
+filename:="4T1-[4,4,1]-4-4-1111-g0.m";
 
 
 /*
