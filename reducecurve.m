@@ -42,7 +42,7 @@ intrinsic SmallFunctions(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
       if Dimension(RR) eq 1 then
         x := mRR(RR.1);
         divx := Divisor(x);
-        // yeah yeah, we know a lot about the divisor of x, but 
+        // yeah yeah, we know a lot about the divisor of x, but
         // it may have an extra zero (or zeros!)
         if divx notin divisorsSeen then
           Append(~xs, x);
@@ -101,6 +101,8 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
         assert &and[Evaluate(fuvFact[k][1], [x_op, phi,0]) ne 0 : k in [j+1..#fuvFact]];
       end if;
     end for;
+  else
+    fuv:=fuvFact[1][1];
   end if;
   //_<u,v> := PolynomialRing(K,2);
   //return Evaluate(fuv,[v,u,0]);
@@ -155,10 +157,11 @@ intrinsic ComputeThirdRamificationValue(f::RngMPolElt) -> Any
   ram_up := Support(Divisor(Differential(t)));
   ram_down := [*Evaluate(t, el) : el in ram_up*];
   ram_other := [el : el in ram_down | el ne 0 and el cmpne Infinity()];
-  ram_other := SetToSequence(SequenceToSet(ram_other));
+  ram_other := Setseq(Set(ram_other));
   assert #ram_other in [0,1];
   if #ram_other eq 1 then
-    return true, ram_other[1];
+    a1:=BaseField(C)!ram_other[1];
+    return true, a1;
   else
     return false, _;
   end if;

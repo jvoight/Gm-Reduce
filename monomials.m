@@ -123,6 +123,7 @@ end intrinsic;
 intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, PrimeBound := 0, effort := 6*#xs) -> SeqEnum
   {Given a list xs of functions, compute the size of the monomial support of the resulting curve mod a prime. Return the list of functions sorted by this size.}
 
+  d_phi:=Degree(phi);
   KX := Parent(phi);
   X := Curve(KX);
   if PrimeBound eq 0 then
@@ -169,7 +170,7 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
   while m le #ts_xs_Fs_sorted and m le effort do
     tm, xm, Fm := Explode(ts_xs_Fs_sorted[m]);
     C_m := Curve(AffineSpace(Parent(Fm)), Fm);
-    if Genus(C_m) eq g then
+    if Genus(C_m) eq g and Degree(Fm,xm) eq Degree(phi) then
       m +:= 1;
     else
       Remove(~ts_xs_Fs_sorted, m);
