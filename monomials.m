@@ -156,10 +156,10 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
         t := phi_orb[i];
         F := F_orb[i];
         mons_FF := Monomials(F);
-        Append(~Nmons, #mons_FF);
+        Append(~Nmons, [#mons_FF, Degree(x_op_FF)]);
         Append(~ts_xs_Fs, [* t, x_op, F *]);
     end for;
-    //printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
+    // printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
   end for;
   ts_xs_Fs_sorted := ts_xs_Fs;
   ParallelSort(~Nmons, ~ts_xs_Fs_sorted);

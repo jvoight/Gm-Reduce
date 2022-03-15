@@ -218,9 +218,11 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
     x, t, F := Explode(tup);
     fred := ReducedModel(t, x);
     // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
-    Append(~reduced_models, [* t, x, fred *]);
+    Append(~reduced_models, <#Sprint(fred), t, x, fred>);
   end for;
-  return reduced_models;
+  Sort(~reduced_models);
+  // return reduced_models;
+  return [reddat[4] : reddat in reduced_models];
 end intrinsic;
 
 
