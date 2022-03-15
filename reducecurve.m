@@ -215,7 +215,7 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   xs_ts_Fs_sorted := SortSmallFunctions(phi,xs : effort := effort);
   reduced_models := [];
   for tup in xs_ts_Fs_sorted do
-    x, t, F := Explode(tup);
+    t, x, F := Explode(tup);
     fred := ReducedModel(t, x);
     // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
     Append(~reduced_models, <#Sprint(fred), t, x, fred>);
