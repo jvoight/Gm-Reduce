@@ -525,18 +525,28 @@ intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
   //ignore prime not working properly SS:=[ pp : pp in support_init | IgnorePrime(f,pp) eq false ];
   //S is the prime divisors of all norms of numerators and denominators of coeffients
 
-  lp_size:=(var_size+1)*#SS+var_size+1;
-  obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] cat [0 : w in [1..var_size+1]]);
+  if h eq 1 then
+    lp_size:=(var_size+1)*#SS;
+    obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] );
+  else
+    lp_size:=(var_size+1)*#SS+var_size+1;
+    obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] cat [0 : w in [1..var_size+1]]);
+  end if;
+
   L := LPProcess(k, lp_size);
   SetObjectiveFunction(L, obj);
   SetIntegerSolutionVariables(L,[ i : i in [1..lp_size]], true);
 
-  extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..var_size+1] ];
+  if h eq 1 then
+    extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]];
+  else
+    extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..var_size+1] ];
+  end if;
 
   for i in [1..#SS] do
     for j in [1..m] do
       lhs:=Insert(extra_zeroes, (var_size+1)*i-var_size,(var_size+1)*i-var_size-1,mexps[j] cat [1]);
-      lhs:=Matrix(k,1,(var_size+1)*(#SS+1),lhs);
+      lhs:=Matrix(k,1,lp_size,lhs);
   		rhs:= Matrix(k,1,1,[-Valuation(coefs[j],SS[i])]);
   		AddConstraints(L, lhs, rhs : Rel := "ge");
     end for;
