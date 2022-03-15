@@ -29,18 +29,24 @@ intrinsic SmallFunctions(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
     newDs := frontierDs;
   end while;
   Ds:=Setseq(Set(Ds));
+  if #Ds eq 0 then return []; end if;
 
   xs := [];
+  divisorsSeen := [Universe(Ds) | 0];
   for Dden in Ds do
     for Dnum in Ds do
-
       D := Dden-Dnum;
+      // if Degree(D) ne 0 then continue; end if;
       if D eq Parent(D)!0 then continue; end if;
       RR, mRR := RiemannRochSpace(D);
       if Dimension(RR) eq 1 then
         x := mRR(RR.1);
-        if Divisor(x) ne Parent(Divisor(x))!0 then
+        divx := Divisor(x);
+        // yeah yeah, we know a lot about the divisor of x, but 
+        // it may have an extra zero (or zeros!)
+        if divx notin divisorsSeen then
           Append(~xs, x);
+          Append(~divisorsSeen, divx);
         end if;
       end if;
     end for;
@@ -206,12 +212,12 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 
   xs := SmallFunctions(PsQsRs, degree);
-  xs_ts_Fs_sorted := SortSmallFunctions(phi,xs);
+  xs_ts_Fs_sorted := SortSmallFunctions(phi,xs : effort := effort);
   reduced_models := [];
   for tup in xs_ts_Fs_sorted do
     x, t, F := Explode(tup);
     fred := ReducedModel(t, x);
-    printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
+    // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
     Append(~reduced_models, [* t, x, fred *]);
   end for;
   return reduced_models;
