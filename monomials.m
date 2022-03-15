@@ -120,7 +120,7 @@ intrinsic PrimeForReduction(phi::FldFunFracSchElt, xs : PrimeBound := 0) -> Any
   return P;
 end intrinsic;
 
-intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, PrimeBound := 0, effort := 30) -> SeqEnum
+intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, PrimeBound := 0, effort := 6*#xs) -> SeqEnum
   {Given a list xs of functions, compute the size of the monomial support of the resulting curve mod a prime. Return the list of functions sorted by this size.}
 
   KX := Parent(phi);
@@ -143,7 +143,7 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
     Append(~xs_FF, x_FF);
   end for;
   Nmons := [];
-  xs_ts_Fs := [];
+  ts_xs_Fs := [];
   for i := 1 to #xs do
     x_op := xs[i];
     x_op_FF := xs_FF[i];
@@ -157,23 +157,23 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
         F := F_orb[i];
         mons_FF := Monomials(F);
         Append(~Nmons, #mons_FF);
-        Append(~xs_ts_Fs, [* x_op, t, F *]);
+        Append(~ts_xs_Fs, [* t, x_op, F *]);
     end for;
     //printf "%o monomials, max degree = %o\n", #mons_FF, Max([Degree(el) : el in mons_FF]);
   end for;
-  xs_ts_Fs_sorted := xs_ts_Fs;
-  ParallelSort(~Nmons, ~xs_ts_Fs_sorted);
+  ts_xs_Fs_sorted := ts_xs_Fs;
+  ParallelSort(~Nmons, ~ts_xs_Fs_sorted);
   // check that genus is correct, throw out otherwise
   g := Genus(X);
   m := 1;
-  while m le #xs_ts_Fs_sorted and m le effort do 
-    xm, tm, Fm := Explode(xs_ts_Fs_sorted[m]);
+  while m le #ts_xs_Fs_sorted and m le effort do
+    tm, xm, Fm := Explode(ts_xs_Fs_sorted[m]);
     C_m := Curve(AffineSpace(Parent(Fm)), Fm);
     if Genus(C_m) eq g then
       m +:= 1;
     else
-      Remove(~xs_ts_Fs_sorted, m);
+      Remove(~ts_xs_Fs_sorted, m);
     end if;
   end while;
-  return xs_ts_Fs_sorted[1..Min(effort,#xs_ts_Fs_sorted)];
+  return ts_xs_Fs_sorted[1..Min(effort,#ts_xs_Fs_sorted)];
 end intrinsic;

@@ -1,7 +1,7 @@
 //AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
 SetClassGroupBounds("GRH");
 
-intrinsic SmallFunctionsBound(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
+intrinsic SmallFunctions(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
   {Given a sequence of points Qs, return functions supported on Qs of degree <= d}
   // Qs, points which are "small"
   // d, a degree bound;
@@ -52,13 +52,13 @@ intrinsic SmallFunctionsBound(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
 end intrinsic;
 
 
-intrinsic SmallFunctions(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
+intrinsic SmallFunctionsExactDegree(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> SeqEnum
   {Given a sequence of points Qs, return functions supported on Qs of exact degree d}
   if d eq 1 then
-    return SmallFunctionsBound(Qs,d);
+    return SmallFunctions(Qs,d);
   else
-    sfd:=SmallFunctionsBound(Qs,d);
-    sfd1 := SmallFunctionsBound(Qs,d-1);
+    sfd:=SmallFunctions(Qs,d);
+    sfd1 := SmallFunctions(Qs,d-1);
     return [ s : s in sfd | s notin sfd1 ];
   end if;
 end intrinsic;
@@ -107,6 +107,14 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   //x=v, t=u
 end intrinsic;
 
+intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
+  {Given a mutlivariate polynomial return it's reduction}
+  f_padic := reducemodel_padic(f);
+  f_unit := reducemodel_units(f);
+  return f_unit;
+end intrinsic;
+
+
 intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
   f_plane := model(phi,x_op);
@@ -114,6 +122,7 @@ intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPol
   f_unit := reducemodel_units(f_padic);
   return f_unit;
 end intrinsic;
+
 
 intrinsic ReducedModelsS3Orbit(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
@@ -132,7 +141,6 @@ intrinsic ReducedModelS3Orbit(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> 
   Sort(~s3_size);
   return s3_size[1,2];
 end intrinsic;
-
 
 intrinsic ComputeThirdRamificationValue(f::RngMPolElt) -> Any
   {Given a polynomial f(t,x) defining a plane curve where t is a 3-point branched cover ramified over 0, oo, and s, return s}
@@ -207,13 +215,6 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
     Append(~reduced_models, [* t, x, fred *]);
   end for;
   return reduced_models;
-end intrinsic;
-
-intrinsic ReducedEquation(phi::FldFunFracSchElt : effort := 30, degree:= 3) -> RngMPolElt
-  {}
-  reduced_equations:=AllReducedEquations(phi : effort := 30, degree:= 3);
-  Sort(~reduced_equations);
-  return reduced_equations[1,2];
 end intrinsic;
 
 
