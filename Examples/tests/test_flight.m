@@ -70,7 +70,7 @@ ReductionTest := function(filename : degree_extra:=1, effort:=10)
       end if;
     end for;
 
-    Sprintf("Ceiling((Genus(X)+3)/2) = %o \n", Ceiling((Genus(X)+3)/2));
+    Sprintf("Floor((Genus(X)+3)/2) = %o \n", Floor((Genus(X)+3)/2));
     Sprintf("The degree of the best model is: %o \n", deg_best);
 
     //printf "The degree of the best function is \n %o = %o + %o = Ceiling((Genus(X)+3)/2) + %o", dextra_best+d_init, d_init, dextra_best, dextra_best;
