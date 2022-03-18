@@ -12,7 +12,7 @@ filenames cat:= BelyiDBFilenames(9);
 */
 
 
-filenames:=BelyiDBFilenames(4);
+filenames:=BelyiDBFilenames(5);
 
 for filename in filenames do
   ReductionTest(filename: degree_extra:=1, effort:=10);

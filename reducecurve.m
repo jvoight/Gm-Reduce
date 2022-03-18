@@ -93,12 +93,22 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
     return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
   */
   // determine which factor of the result has roots x_op and phi
+  
+  Kphi := Parent(phi);
+  Kx_op := Parent(x_op);
+  X := Curve(Kphi);
+  if Genus(X) eq 0 then
+    iso_x := hom< Kx_op -> Kphi | [Kphi.1]>;
+  else
+    iso_x := hom< Kx_op -> Kphi | [Kphi.1, Kphi.2]>;
+  end if;
+
   fuvFact := Factorization(fuv);
   if #fuvFact gt 1 then
     for j := 1 to #fuvFact do
-      if Evaluate(fuvFact[j][1], [x_op, phi,0]) eq 0 then
+      if Evaluate(fuvFact[j][1], [iso_x(x_op),phi,0]) eq 0 then
         fuv := fuvFact[j][1];
-        assert &and[Evaluate(fuvFact[k][1], [x_op, phi,0]) ne 0 : k in [j+1..#fuvFact]];
+        assert &and[Evaluate(fuvFact[k][1], [iso_x(x_op),phi,0]) ne 0 : k in [j+1..#fuvFact]];
       end if;
     end for;
   else
