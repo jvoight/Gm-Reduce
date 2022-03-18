@@ -1,4 +1,5 @@
-load "config.m";
+AttachSpec("code/spec_database");
+AttachSpec("code/spec_triangle");
 AttachSpec("../Gm-Reduce/spec");
 //AttachSpec("../Belyi/Code/spec");
 s := BelyiDBRead(filename);
