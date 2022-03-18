@@ -14,7 +14,7 @@ filenames cat:= BelyiDBFilenames(9);
 
 for filename in filenames do
   X := BelyiDBRead(filename)`BelyiDBBelyiCurves[1];
-  if Genus(X) in [0,1] then
-    ReductionTest(filename: degree_extra:=1, effort:=10);
+  if Genus(X) in gt 1 then
+    ReductionTest(filename: degree_extra:=0, effort:=5);
   end if;
 end for;

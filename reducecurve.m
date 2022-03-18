@@ -132,7 +132,6 @@ end intrinsic;
 
 intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {Given a Belyi map phi and a rational function x_op, find a plane model for the curve with phi and x_op as coordinates}
-  //add 1/phi etc in here.
   fu := MinimalPolynomial(phi);
   fv := MinimalPolynomial(x_op);
   K := BaseRing(BaseRing(Parent(phi)));
@@ -143,18 +142,8 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   fves := Eltseq(fv);
   fu := Numerator(&+[Evaluate(fues[i],zf)*uf^(i-1) : i in [1..#fues]]);
   fv := Numerator(&+[Evaluate(fves[i],zf)*vf^(i-1) : i in [1..#fves]]);
-
   fuv := Resultant(fu,fv,z);
-  //groebner basis? 1/phi here etc
-  /*
-    _<u> := PolynomialRing(K);
-    _<v> := PolynomialRing(Parent(u));
-    cuv := Coefficients(fuv);
-    muv := Monomials(fuv);
-    return &+[cuv[i]*Evaluate(muv[i],[v,u,0]) : i in [1..#cuv]];
-  */
-  // determine which factor of the result has roots x_op and phi
-  
+
   Kphi := Parent(phi);
   Kx_op := Parent(x_op);
   X := Curve(Kphi);
@@ -175,31 +164,27 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   else
     fuv:=fuvFact[1][1];
   end if;
-  //_<u,v> := PolynomialRing(K,2);
-  //return Evaluate(fuv,[v,u,0]);
+
   _<t,x> := PolynomialRing(K,2);
   f_plane:=Evaluate(fuv,[x,t,0]);
-  //f_univ:=MultivariateToUnivariate(f_unit);
-  //f_display:=PolynomialToFactoredString(f_univ);
   return f_plane;
-  //S3orbit, 1-t, lookup in Belyi/code/belyi_main/S3Orbit()
   //x=v, t=u
 end intrinsic;
 
+
 intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
   {Given a mutlivariate polynomial return it's reduction}
-  f_padic := reducemodel_padic(f);
-  f_unit := reducemodel_units(f);
-  return f_unit;
+  f_padic, scalars1  := reducemodel_padic(f);
+  f_unit, scalars2 := reducemodel_units(f_padic);
+  return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
 end intrinsic;
 
 
 intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {}
   f_plane := model(phi,x_op);
-  f_padic := reducemodel_padic(f_plane);
-  f_unit := reducemodel_units(f_padic);
-  return f_unit;
+  f_reduced, scalars := ReducedEquation(f_plane);
+  return f_reduced, scalars;
 end intrinsic;
 
 
@@ -279,8 +264,11 @@ intrinsic S3Orbit(f::RngMPolElt) -> SeqEnum
   return [ Parent(f)!S3Action(el, f) : el in Sym(3) ];
 end intrinsic;
 
-intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) -> SeqEnum
+intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 10, degree := 0) -> SeqEnum
   {}
+  if degree eq 0 then
+    degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
+  end if;
   RsandPs := Support(Divisor(phi));
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
@@ -290,14 +278,24 @@ intrinsic AllReducedEquations(phi::FldFunFracSchElt : effort := 30, degree:= 3) 
   reduced_models := [];
   for tup in xs_ts_Fs_sorted do
     t, x, F := Explode(tup);
-    fred := ReducedModel(t, x);
+    fred,scalars := ReducedModel(t, x);
     // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
-    Append(~reduced_models, <#Sprint(fred), t, x, fred>);
+    Append(~reduced_models, <#Sprint(fred), t, x, fred, scalars>);
   end for;
   Sort(~reduced_models);
   // return reduced_models;
-  return [reddat[4] : reddat in reduced_models];
+  return [ <reddat[4], reddat[5]> : reddat in reduced_models];
 end intrinsic;
+
+intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0) -> RngMPolElt
+  {return then best model with some search parameters}
+  if degree eq 0 then
+    degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
+  end if;
+  list:=AllReducedModels(phi : effort:=effort, degree:=degree);
+  return list[1][1],1/list[1,2,1];
+end intrinsic;
+
 
 
 //add intrinsic to loop over small functions and output ReduceModel();
