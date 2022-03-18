@@ -1,6 +1,7 @@
 //AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
 SetClassGroupBounds("GRH");
 
+// TODO: just import from Belyi; Gm-Reduce should output f and scalar a
 intrinsic BelyiMapSanityCheck(sigma::SeqEnum[GrpPermElt], f::RngMPolElt : lax := false) -> Any
   {Does a basic check to see if the candidate is plausible. If lax is set to true, then work in the category of lax Belyi maps.}
   // make curve and function field to compute divisors
@@ -147,11 +148,13 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   Kphi := Parent(phi);
   Kx_op := Parent(x_op);
   X := Curve(Kphi);
-  if Genus(X) eq 0 then
-    iso_x := hom< Kx_op -> Kphi | [Kphi.1]>;
-  else
+  // JV see monomials.m
+  // if Genus(X) eq 0 then
+  try
     iso_x := hom< Kx_op -> Kphi | [Kphi.1, Kphi.2]>;
-  end if;
+  catch e;
+    iso_x := hom< Kx_op -> Kphi | [Kphi.1]>;
+  end try;
 
   fuvFact := Factorization(fuv);
   if #fuvFact gt 1 then
@@ -210,9 +213,10 @@ intrinsic ComputeThirdRamificationValue(f::RngMPolElt) -> Any
   {Given a polynomial f(t,x) defining a plane curve where t is a 3-point branched cover ramified over 0, oo, and s, return s}
   C := Curve(AffineSpace(Parent(f)), f);
   KC<t,x> := FunctionField(C);
+  k := BaseRing(BaseRing(KC));
   ram_up := Support(Divisor(Differential(t)));
   ram_down := [*Evaluate(t, el) : el in ram_up*];
-  ram_other := [el : el in ram_down | el ne 0 and el cmpne Infinity()];
+  ram_other := [k!el : el in ram_down | el ne 0 and el cmpne Infinity()];
   ram_other := Setseq(Set(ram_other));
   assert #ram_other in [0,1];
   if #ram_other eq 1 then
