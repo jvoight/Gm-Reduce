@@ -1,2 +1,7 @@
+load "config.m";
+AttachSpec("../Gm-Reduce/spec");
+AttachSpec("../Belyi/spec");
 s := BelyiDBRead(filename);
-print BelyiDBToRows(s);
+if BelyiMapIsComputed(s) then
+  print BelyiDBToRows(s);
+end if;

@@ -2,6 +2,7 @@ intrinsic BelyiDBToRows(s::BelyiDB) -> MonStgElt
   {}
   row := "";
   // galmaps dictionaries
+  require BelyiMapIsComputed(s): "maps must be computed";
   gal_orbits_before_sorting := GaloisOrbits(s); // we will sort by size (increasing)
   gal_orbits := gal_orbits_before_sorting;
   gal_orbits_sizes := [#orbit : orbit in gal_orbits_before_sorting];
