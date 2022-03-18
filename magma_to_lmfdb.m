@@ -20,7 +20,10 @@ intrinsic BelyiDBToRows(s::BelyiDB) -> MonStgElt
     KX := Parent(phi);
     K<nu> := BaseRing(BaseRing(KX));
     f, a := BestModel(phi);
-    row *:= Sprintf("%o|%o|%o|%o\n", lmfdb_label, belyi_label, f, K!a);
+    row *:= Sprintf("%o|%o|%o|%o", lmfdb_label, belyi_label, f, K!a);
+    if i lt #gal_orbits then
+      row *:= "\n";
+    end if;
   end for;
   return row;
 end intrinsic;
