@@ -292,3 +292,62 @@ The number of models that were reduced is 120
 The total time this took was 1174.290 
 
 
+====================================
+4T4-[3,3,2]-31-31-22-g0.m
+Original curve: 
+ Curve over Number Field with defining polynomial $.1 - 1 over the Rational 
+Field defined by
+0 
+
+Original map: 
+ x/(x^4 - 3*x^3 + 15/8*x^2 + 9/16*x + 9/256) 
+
+Genus(X) = 0
+[ Degree, Index of best model out of 30 (or less), best model]
+[
+    1,
+    17,
+    8*t*x + t + x^4 - x^3
+]
+[
+    2,
+    3,
+    -4*t^2 + t + 3*x^4 - 2*x^3
+]
+[
+    3,
+    6,
+    t^3 - 8*t^2*x + t*x^3 + x^4
+]
+[
+    4,
+    17,
+    4*t^4 - 8*t^3*x - t^3 + 2*t^2*x + 4*t*x^3 + x^4
+]
+Floor((Genus(X)+3)/2) = 1 
+
+The degree of the best model is: 1 
+
+The number of models that were reduced is 120 
+
+The total time this took was 1351.280 
+
+
+
+
+Magma: Internal error
+
+Please mail this entire run [*** WITH THE DETAILS BELOW ***]
+    to magma-bugs@maths.usyd.edu.au
+
+You can print the entire input by entering:
+%P
+
+Version: 2.26-10
+Machine type: x86_64-linux
+Initial seed: 3515300773
+Time to this point: 8439.01
+Memory usage: 32.09MB
+Segmentation fault
+
+Total time: 8439.010 seconds, Total memory usage: 32.09MB

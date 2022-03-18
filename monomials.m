@@ -1,8 +1,16 @@
-//AttachSpec("../endomorphisms/endomorphisms/magma/spec");
-//import "../endomorphisms/endomorphisms/magma/puiseux/FractionalCRT.m": RandomSplitPrime;
-// have to change if endomorphisms repo is elsewhere
-//AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+AttachSpec("../BelyiDB/code/spec_database"); // have to change if BelyiDB repo is elsewhere
+AttachSpec("../BelyiDB/code/spec_database"); // have to change if BelyiDB repo is elsewhere
+//Attach("../Belyi/Code/belyi_main.m"); // have to change if Belyi repo is elsewhere
 // includes intrinsic S3Action(tau, phi)
+//
+
+HyperellipticCurveToCurve := function(X);
+  assert Type(X) eq CrvHyp;
+  f := DefiningEquation(AffinePatch(X,1));
+  C := Curve(AffineSpace(Parent(f)),f);
+  return ProjectiveClosure(C);
+end function;
 
 intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) -> Any
   {Given a Belyi map phi defined on a curve X and a prime ideal of the field of definition of X, return the reductions of X and phi mod P}
@@ -12,10 +20,14 @@ intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) ->
   K := BaseRing(X);
   OK := Integers(K);
   FF, res_mp := ResidueClassField(P);
-  X_FF := Reduction(X, P);
-  X_FF := Curve(X_FF);
+  if Type(X) eq CrvHyp then
+    //X := HyperellipticCurveToCurve(X);
+    X_FF := ChangeRing(X, FF);
+  else
+    X_FF := Reduction(X, P);
+    X_FF := Curve(X_FF);
+  end if;
   KX_FF := FunctionField(X_FF);
-
   AX := CoordinateRing(X);
   N_gens := #GeneratorsSequence(AX) - 1; // number of generators for the function field
   KX_gens := [];
@@ -41,7 +53,7 @@ intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) ->
   return X_FF, phi_FF_num/phi_FF_den;
 end intrinsic;
 
-// copied form endomorphisms b/c EquationOrder is causing problems
+// copied from endomorphisms b/c EquationOrder is causing problems
 
 function ReduceConstantSplit(x, h)
   return h(x);
@@ -123,6 +135,9 @@ end intrinsic;
 intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, PrimeBound := 0, effort := 6*#xs) -> SeqEnum
   {Given a list xs of functions, compute the size of the monomial support of the resulting curve mod a prime. Return the list of functions sorted by this size.}
 
+  if #xs eq 0 then
+   return [];
+  end if;
   d_phi:=Degree(phi);
   KX := Parent(phi);
   X := Curve(KX);
@@ -139,9 +154,20 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
   // reduce small functions by P
   X_FF, phi_FF := ReduceRationalFunction(X, phi, P);
   xs_FF := [];
-  for el in xs do
+  _, x_FF := ReduceRationalFunction(X, xs[1], P);
+  Append(~xs_FF, x_FF);
+  KX_FF1 := Parent(xs_FF[1]);
+  //for el in xs do
+  for i := 2 to #xs do
+    el := xs[i];
     _, x_FF := ReduceRationalFunction(X, el, P);
-    Append(~xs_FF, x_FF);
+    KX_FF := Parent(x_FF);
+    if Genus(X) eq 0 then
+      iso_x := hom< KX_FF -> KX_FF1 | [KX_FF1.1]>;
+    else
+      iso_x := hom< KX_FF -> KX_FF1 | [KX_FF1.1, KX_FF1.2]>;
+    end if;
+    Append(~xs_FF, iso_x(x_FF));
   end for;
   Nmons := [];
   ts_xs_Fs := [];
@@ -168,13 +194,13 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
   g := Genus(X);
   m := 1;
   while m le #ts_xs_Fs_sorted and m le effort do
-     tm, xm, Fm := Explode(ts_xs_Fs_sorted[m]);
-     C_m := Curve(AffineSpace(Parent(Fm)), Fm);
-     if Genus(C_m) eq g and Degree(Fm,Parent(Fm).2) eq Degree(phi) then
-       m +:= 1;
-     else
-       Remove(~ts_xs_Fs_sorted, m);
-     end if;
-   end while;
+    tm, xm, Fm := Explode(ts_xs_Fs_sorted[m]);
+    C_m := Curve(AffineSpace(Parent(Fm)), Fm);
+    if Genus(C_m) eq g and Degree(Fm,Parent(Fm).2) eq Degree(phi) then
+      m +:= 1;
+    else
+      Remove(~ts_xs_Fs_sorted, m);
+    end if;
+  end while;
   return ts_xs_Fs_sorted[1..Min(effort,#ts_xs_Fs_sorted)];
 end intrinsic;
