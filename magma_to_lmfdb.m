@@ -13,9 +13,13 @@ intrinsic BelyiDBToRow(s::BelyiDB) -> MonStgElt
     inds := [Index(pass, triple) : triple in gal_orbit];
     belyi_label := BelyiDB_label(s, inds, i);
     lmfdb_label := GalmapLabel(s, inds, i);
-    phi := BelyiMap(s, inds, i);
-    f := BestModel(phi);
-    row *:= Sprintf("%o|%o|%o\n", lmfdb_label, belyi_label, f);
+    X := BelyiCurves(s)[inds[1]];
+    //phi := BelyiMap(s, inds, i);
+    phi := BelyiMaps(s)[inds[1]];
+    KX := Parent(phi);
+    K<nu> := BaseRing(BaseRing(KX));
+    f, a := BestModel(phi);
+    row *:= Sprintf("%o|%o|%o|%o\n", lmfdb_label, belyi_label, f, K!a);
   end for;
   return row;
 end intrinsic;
