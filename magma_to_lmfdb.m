@@ -15,7 +15,7 @@ intrinsic BelyiDBToRow(s::BelyiDB) -> MonStgElt
     lmfdb_label := GalmapLabel(s, inds, i);
     phi := BelyiMap(s, inds, i);
     f := BestModel(phi);
-    row *:= "%o|%o|%o\n", lmfdb_label, belyi_label, f;
+    row *:= Sprintf("%o|%o|%o\n", lmfdb_label, belyi_label, f);
   end for;
   return row;
 end intrinsic;
