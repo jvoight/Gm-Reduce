@@ -1,6 +1,5 @@
-//must be in Belyi/BelyiDB directory
-AttachSpec("../Code/spec");
-AttachSpec("../../Gm-Reduce/spec");
+//must be in BelyiDB directory
+AttachSpec("../Gm-Reduce/spec");
 SetDebugOnError(true);
 
 /*Things to test:
