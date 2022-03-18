@@ -5,3 +5,4 @@ s := BelyiDBRead(filename);
 if BelyiMapIsComputed(s) then
   print BelyiDBToRows(s);
 end if;
+quit;
