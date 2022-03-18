@@ -7,6 +7,9 @@ F := x*y^17 + 15/4*x*y^16 + 69/10*x*y^15 + 359/40*x*y^14 + 2943/320*x*y^13 + 483
 
 ReducedEquation(F);
 
+X := Curve(AffineSpace(R), F);
+KX := FunctionField(X);
+AllReducedEquations(KX.1 : effort := 10, degree := 1);
 
 // integralize F
 /*
