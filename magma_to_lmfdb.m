@@ -1,4 +1,4 @@
-intrinsic BelyiDBToRow(s::BelyiDB) -> MonStgElt
+intrinsic BelyiDBToRows(s::BelyiDB) -> MonStgElt
   {}
   row := "";
   // galmaps dictionaries
