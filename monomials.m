@@ -1,7 +1,7 @@
-//AttachSpec("../endomorphisms/endomorphisms/magma/spec");
-//import "../endomorphisms/endomorphisms/magma/puiseux/FractionalCRT.m": RandomSplitPrime;
-// have to change if endomorphisms repo is elsewhere
-//AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+AttachSpec("../Belyi/Code/spec"); // have to change if Belyi repo is elsewhere
+AttachSpec("../BelyiDB/code/spec_database"); // have to change if BelyiDB repo is elsewhere
+AttachSpec("../BelyiDB/code/spec_database"); // have to change if BelyiDB repo is elsewhere
+//Attach("../Belyi/Code/belyi_main.m"); // have to change if Belyi repo is elsewhere
 // includes intrinsic S3Action(tau, phi)
 //
 
