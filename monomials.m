@@ -168,13 +168,13 @@ intrinsic SortSmallFunctions(phi::FldFunFracSchElt, xs::SeqEnum : Prime := 0, Pr
   g := Genus(X);
   m := 1;
   while m le #ts_xs_Fs_sorted and m le effort do
-    tm, xm, Fm := Explode(ts_xs_Fs_sorted[m]);
-    C_m := Curve(AffineSpace(Parent(Fm)), Fm);
-    if Genus(C_m) eq g and Degree(Fm,xm) eq Degree(phi) then
-      m +:= 1;
-    else
-      Remove(~ts_xs_Fs_sorted, m);
-    end if;
-  end while;
+     tm, xm, Fm := Explode(ts_xs_Fs_sorted[m]);
+     C_m := Curve(AffineSpace(Parent(Fm)), Fm);
+     if Genus(C_m) eq g and Degree(Fm,Parent(Fm).2) eq Degree(phi) then
+       m +:= 1;
+     else
+       Remove(~ts_xs_Fs_sorted, m);
+     end if;
+   end while;
   return ts_xs_Fs_sorted[1..Min(effort,#ts_xs_Fs_sorted)];
 end intrinsic;
