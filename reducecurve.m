@@ -297,7 +297,8 @@ intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0) -> RngMPo
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
   list:=AllReducedModels(phi : effort:=effort, degree:=degree);
-  return list[1][1], 1/list[1,2,1];
+  f := list[1][1];
+  return f, BaseRing(Parent(f))!1/list[1][2][1];
 end intrinsic;
 
 
