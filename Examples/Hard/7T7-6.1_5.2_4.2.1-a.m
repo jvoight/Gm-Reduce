@@ -18,6 +18,9 @@ t:=Realtime();
 //Support(Divisor(phi));
 AttachSpec("../../Gm-Reduce/spec");
 
+AllReducedEquations(phi : effort := 10, degree := 2);
+
+/*
 RsandPs := Support(Divisor(phi));
 RsandQs := Support(Divisor(phi-1));
 PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
@@ -40,6 +43,7 @@ fmod:=model(phi,x_op); fmod;
 fp:=reducemodel_padic(fmod); fp;
 funit:=reducemodel_units(fp);
 funit;
+*/
 
 
 
