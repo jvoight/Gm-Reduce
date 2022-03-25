@@ -856,7 +856,7 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
       Append(~new_fuvs, <#Sprint(guv),guv,ab>);
     end if;
     // JV: possibly redundantly, clear denominators one last time
-    end for;
+  end for;
 
   Sort(~new_fuvs);
   new_fuv:=new_fuvs[1,2];
