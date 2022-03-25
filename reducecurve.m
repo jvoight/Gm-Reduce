@@ -895,7 +895,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
   UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
 
   if UU eq [] then
-    return f, [1: i in [1..var_size+1]];
+    return f, [K!1: i in [1..var_size+1]];
   else
 
     constants:=[];
