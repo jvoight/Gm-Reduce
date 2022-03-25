@@ -278,9 +278,14 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 10, degree := 0) ->
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 
   xs := SmallFunctions(PsQsRs, degree);
-  xs_ts_Fs_sorted := SortSmallFunctions(phi,xs : effort := effort);
+  ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
+  while #ts_xs_Fs_sorted eq 0 do
+    degree +:= 1;
+    xs := SmallFunctions(PsQsRs, degree);
+    ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
+  end while;
   reduced_models := [];
-  for tup in xs_ts_Fs_sorted do
+  for tup in ts_xs_Fs_sorted do
     t, x, F := Explode(tup);
     fred,scalars := ReducedModel(t, x);
     // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
