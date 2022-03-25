@@ -605,7 +605,7 @@ intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
     end if;
   end for;
   if SS eq [] then
-    return f;
+    return f, [K!1 : i in [1..var_size+1] ];
   end if;
   //ignore prime not working properly SS:=[ pp : pp in support_init | IgnorePrime(f,pp) eq false ];
   //S is the prime divisors of all norms of numerators and denominators of coeffients
