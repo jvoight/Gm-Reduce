@@ -176,7 +176,7 @@ end intrinsic;
 
 
 intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
-  {Given a mutlivariate polynomial return it's reduction}
+  {Given a multivariate polynomial return its reduction}
   f_padic, scalars1  := reducemodel_padic(f);
   f_unit, scalars2 := reducemodel_units(f_padic);
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
