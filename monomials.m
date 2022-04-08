@@ -22,7 +22,11 @@ intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) ->
   FF, res_mp := ResidueClassField(P);
   if Type(X) eq CrvHyp then
     //X := HyperellipticCurveToCurve(X);
-    X_FF := ChangeRing(X, FF);
+    //X_FF := ChangeRing(X, FF); // breaks when over number field
+    f, h := HyperellipticPolynomials(X);
+    RFF<u> := PolynomialRing(FF);
+    cs_f := Coefficients(f);
+    cs_h := Coefficients(h);
   else
     X_FF := Reduction(X, P);
     X_FF := Curve(X_FF);

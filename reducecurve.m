@@ -676,7 +676,7 @@ intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
 
   guv:=Evaluate(f,[(BaseRing(Parent(f))!scaling_factors[i])*variables[i] : i in [1..var_size]])*BaseRing(Parent(f))!scaling_factors[var_size+1];
 
-  return guv, scaling_factors;
+  return guv, [K!el : el in scaling_factors];
 end intrinsic;
 
 
@@ -900,7 +900,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
   UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
 
   if UU eq [] then
-    return f, [1: i in [1..var_size+1]];
+    return f, [K!1: i in [1..var_size+1]];
   else
 
     constants:=[];
@@ -938,7 +938,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
     soln:= [ Eltseq(soln)[i] : i in [1..(var_size+1)*#UU] ];
     soln_rounded:=[ Round(a) : a in soln ];
 
-    eps_soln:= [ &*[ UU[i]^soln_rounded[k*#UU+i] : i in [1..#UU] ] : k in [0..var_size] ];
+    eps_soln:= [K! &*[ UU[i]^soln_rounded[k*#UU+i] : i in [1..#UU] ] : k in [0..var_size] ];
     assert #eps_soln eq var_size + 1;
     guv:=Evaluate(f,[eps_soln[i]*variables[i] : i in [1..var_size]])*eps_soln[var_size+1];
 
