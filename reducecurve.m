@@ -131,6 +131,102 @@ intrinsic SmallFunctionsExactDegree(Qs::SeqEnum[PlcCrvElt], d::RngIntElt) -> Seq
   end if;
 end intrinsic;
 
+intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
+  {Try to reduce an element of the function field naively over just the integers
+  first we treat the number field element as just a variable and then fix it in reducemodel_padic}
+
+
+  X:=Curve(Parent(phi));
+  K:=BaseRing(X);
+  Kw<w>:=PolynomialRing(K);
+
+  S1:=&cat[ Eltseq(c) : c in Coefficients(Numerator(phi)) ]
+  cat &cat[ Eltseq(c) : c in Coefficients(Denominator(phi)) ];
+
+  S2:=&cat[ TrialDivision(Integers()!Numerator(a)) : a in S1 | a ne 0 ]
+  cat &cat[ TrialDivision(Integers()!Denominator(a)) : a in S1  ];
+
+  S3:= Setseq(Set([a[1] : a in S2]));
+
+  E1:=X;
+  for p in S3 do
+    fw:=Kw!HyperellipticPolynomials(E1);
+    u0:=p;
+    E2:=EllipticCurve(Evaluate(fw,(w*u0^2))/u0^6);
+    m:=Isomorphism(E1,E2,[0,0,0,1/u0]);
+    phi_init:=Pushforward(m,phi);
+
+    sprint_phi:=Sprint(phi);
+    if #Sprint(phi_init) gt #sprint_phi then
+      u0:=1/u0;
+    end if;
+
+
+    phi1:=phi;
+    phi2:=phi;
+    sprint_phi1:=Sprint(phi1);
+    sprint_phi2:=Sprint(phi2);
+    while #sprint_phi2 le #sprint_phi1 do
+      phi1:=phi2;
+      E1:=Curve(Parent(phi1));
+      fw:=Kw!HyperellipticPolynomials(E1);
+      E2:=EllipticCurve(Evaluate(fw,u0^2*w)/u0^6);
+      m:=Isomorphism(E1,E2,[0,0,0,1/u0]);
+      phi2:=Pushforward(m,phi1);
+      sprint_phi1:=Sprint(phi1);
+      sprint_phi2:=Sprint(phi2);
+      //u:=u*u0;
+    end while;
+
+    phi:=phi1;
+  end for;
+
+  return phi;
+end intrinsic;
+
+
+/*  K<g> := BaseRing(BaseRing(Parent(phi)));
+  sprint_phi:= Sprint(phi);
+  for i in [1..#names] do
+    sprint_phi:=ReplaceAll(sprint_phi, Sprint(names[i]), Sprintf("X[%o]",i));
+  end for;
+
+  sprint_phi:=ReplaceAll(sprint_phi, "g", Sprintf("X[%o]",#names+1));
+  phi_multi:=KX!(eval sprint_phi);
+  phi_multi_reduced:=reducemodel_padic(phi_multi : FixedVariables:=[#names+1]);
+
+  phi_numerator:=Numerator(phi_multi);
+  phi_denominator:=Denominator(phi_multi);
+
+  p:=Numerator(phi);
+  n:=Denominator(phi);
+  [ Eltseq(a) : a in Coefficients(p) ];*/
+
+
+  /*fphi := Eltseq(phi_min)[1];
+  phi_pol:=Kx!Evaluate(Eltseq(phi_min)[1],x);
+
+  phi_multi:=Kyz!(eval ReplaceAll(ReplaceAll(Sprint(phi), "g","w"),"x","z"));
+  phi_multi_reduced:=reducemodel_padic(phi_multi : FixedVariables:=[1]);
+
+  //coefs_phi:= Coefficients(phi_pol);
+
+  Kx!(eval ReplaceAll(ReplaceAll(Sprint(phi_multi_reduced),"w","g"),"z","x"));
+
+  /*coefs_and_monomials := [ <Coefficients(phi_pol)[i], Monomials(phi_pol)[i]> : i in [1..#Coefficients(phi_pol)] ];
+  multi_phi:= &+[ (&+[ Eltseq(coefs_and_monomials[j,1])[i]*g^(i-1) : i in [1..#Degree(K)] ])*;*/
+
+  //[ [ Valuation(c,2) : c in Eltseq(coefs_and_monomialdegrees[i,1]) ] : i in [1..#coefs_and_monomialdegrees] ];*/
+
+
+
+intrinsic ReplaceAll(string::MonStgElt, char1::MonStgElt, char2::MonStgElt) -> MonStgElt
+  {Replace all instances of the string char1 with char2 in string}
+  return Pipe(Sprintf("sed \"s/%o/%o/g\"", char1, char2), string);
+end intrinsic;
+
+
+
 intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {Given a Belyi map phi and a rational function x_op, find a plane model for the curve with phi and x_op as coordinates}
   fu := MinimalPolynomial(phi);
@@ -579,8 +675,9 @@ end intrinsic;
 
 
 
-intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
-  {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]}
+intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, SeqEnum
+  {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]
+  FixVariable is the set of variables to fix, include n+1 if no scaling is allowed}
   if BaseRing(Parent(f)) eq Rationals() then
     K:=RationalsAsNumberField();
   else
@@ -654,6 +751,20 @@ intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
     end for;
   end if;
 
+  //add in the fixed variable constraints
+  if FixedVariables ne [] then
+    for i in FixedVariables do
+      for j in [0..#SS-1] do
+        zeroes :=[  0 : t in [1..(var_size+1)*#SS-1] ];
+        lhs_fix:= Insert(zeroes, (var_size+1)*j+i,1);
+        lhs_fix:=Matrix(k,1,lp_size,lhs_fix);
+        AddConstraints(L,lhs_fix,Matrix(k,1,1,[0]) : Rel := "eq" );
+      end for;
+    end for;
+  end if;
+
+
+
   for i in [1..lp_size] do  SetLowerBound(L, i, k!-10000); end for;
 
   soln,state:=Solution(L);
@@ -676,12 +787,49 @@ intrinsic reducemodel_padic(f::RngMPolElt) -> RngMPolElt, SeqEnum
 
   guv:=Evaluate(f,[(BaseRing(Parent(f))!scaling_factors[i])*variables[i] : i in [1..var_size]])*BaseRing(Parent(f))!scaling_factors[var_size+1];
 
-  return guv, scaling_factors;
+  return guv, [K!el : el in scaling_factors];
 end intrinsic;
 
 
+/*
+intrinsic reducemodel_rationals(f::RngMPolElt : FixVariable:=0) -> RngMPolElt
+  {Take a multivariate polynomial over the rationals and reduce it. Can fix the ith variable, if 0 no variable is fixed}
+  assert BaseRing(Parent(f)) eq Rationals();
+  K:=RationalsAsNumberField();
+  variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
+  n:=#variables;
+  ZK := Integers(K);
+  k:=Integers();
 
+  coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 ];
+  mexps := [ Exponents(m[2]) : m in coefs_and_monomials ];
+  m:=#mexps;
+  coefs:=[ K!a[1] : a  in coefs_and_monomials ];
+  //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+  obj_coefs:= [ &+[ m[i] : m in mexps] : i in [1..n] ];
 
+  //scaling the whole function is baked into the linear program
+  obj := Matrix(k,1,n+1, obj_coefs cat [m]);
+  lhs_coefs:= [ A cat [1] : A in mexps ];
+  lhs := Matrix(k, lhs_coefs);     //constraints
+  rel := Matrix(k,[[1] : ef in mexps]);
+  rescaling_ideals:=[[ 1 : i in [1..n+1] ]];
+  lp_size:=n+1;
+
+  SS:=CoefficientSupport(f);
+  //S is the prime divisors of all norms of numerators and denominators of coeffients
+
+  minimal_solutions:=[];
+  for pp in SS do
+    cvals := [ Valuation(c,pp) : c in coefs  ];
+    rhs := Matrix(k, [[-cf] : cf in cvals]);          //valuations
+
+    L:=MinimiseL1ToLinearProgram(lhs, -rhs);
+    soln,state:=Solution(L);
+    assert state eq 0;
+    soln:= [ Eltseq(soln)[i] : i in [1..NumberOfColumns(lhs)] ];
+    points_loop:=[soln];
+*/
 
 
 intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominators:=false, Minkowski:=true, Speedy:=false) -> RngMPolElt, SeqEnum
@@ -696,6 +844,7 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
   n:=#variables;
   ZK := Integers(K);
   k:=Integers();
+
 
   if ClearDenominators eq true then
     coefs_and_monomials:= [ [Coefficients(f)[i],Monomials(f)[i]] : i in [1..#Coefficients(f)] | Coefficients(f)[i] ne 0 and Exponents(Monomials(f)[i]) ne [0 : k in [1..n]] ];
@@ -938,7 +1087,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
     soln:= [ Eltseq(soln)[i] : i in [1..(var_size+1)*#UU] ];
     soln_rounded:=[ Round(a) : a in soln ];
 
-    eps_soln:= [ &*[ UU[i]^soln_rounded[k*#UU+i] : i in [1..#UU] ] : k in [0..var_size] ];
+    eps_soln:= [K! &*[ UU[i]^soln_rounded[k*#UU+i] : i in [1..#UU] ] : k in [0..var_size] ];
     assert #eps_soln eq var_size + 1;
     guv:=Evaluate(f,[eps_soln[i]*variables[i] : i in [1..var_size]])*eps_soln[var_size+1];
 
@@ -951,7 +1100,7 @@ end intrinsic;
 
 
 intrinsic padic_LPsolutions(f::RngMPolElt, pp::RngOrdIdl) -> Any
-  {}
+  {return all of the points at which the objective function is minimal.}
   if BaseRing(Parent(f)) eq Rationals() then
     K:=RationalsAsNumberField();
   else

@@ -9,7 +9,7 @@ ReducedEquation(F);
 
 X := Curve(AffineSpace(R), F);
 KX := FunctionField(X);
-AllReducedEquations(KX.1 : effort := 10, degree := 1);
+AllReducedModels(KX.1 : effort := 10, degree := 1);
 
 // integralize F
 /*

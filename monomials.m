@@ -5,13 +5,6 @@ AttachSpec("../BelyiDB/code/spec_database"); // have to change if BelyiDB repo i
 // includes intrinsic S3Action(tau, phi)
 //
 
-HyperellipticCurveToCurve := function(X);
-  assert Type(X) eq CrvHyp;
-  f := DefiningEquation(AffinePatch(X,1));
-  C := Curve(AffineSpace(Parent(f)),f);
-  return ProjectiveClosure(C);
-end function;
-
 intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) -> Any
   {Given a Belyi map phi defined on a curve X and a prime ideal of the field of definition of X, return the reductions of X and phi mod P}
 
@@ -22,7 +15,24 @@ intrinsic ReduceRationalFunction(X::Crv, phi::FldFunFracSchElt, P::RngOrdIdl) ->
   FF, res_mp := ResidueClassField(P);
   if Type(X) eq CrvHyp then
     //X := HyperellipticCurveToCurve(X);
-    X_FF := ChangeRing(X, FF);
+    //X_FF := ChangeRing(X, FF); // breaks when over number field
+    f, h := HyperellipticPolynomials(X);
+    RFF<u> := PolynomialRing(FF);
+    cs_f := Coefficients(f);
+    cs_h := Coefficients(h);
+    cs_f_FF := [res_mp(el) : el in cs_f];
+    cs_h_FF := [res_mp(el) : el in cs_h];
+    //f_FF := &+[cs_f_FF[i]*u^(i-1) : i in [1..#cs_f_FF]];
+    f_FF := RFF!0;
+    for i := 1 to #cs_f_FF do
+      f_FF +:= cs_f_FF[i]*u^(i-1);
+    end for;
+    h_FF := RFF!0;
+    for i := 1 to #cs_h_FF do
+      h_FF +:= cs_h_FF[i]*u^(i-1);
+    end for;
+    //h_FF := &+[cs_h_FF[i]*u^(i-1) : i in [1..#cs_h_FF]];
+    X_FF := HyperellipticCurve([f_FF, h_FF]);
   else
     X_FF := Reduction(X, P);
     X_FF := Curve(X_FF);
