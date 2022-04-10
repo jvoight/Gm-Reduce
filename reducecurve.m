@@ -272,7 +272,7 @@ end intrinsic;
 
 
 intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
-  {Given a mutlivariate polynomial return it's reduction}
+  {Given a multivariate polynomial return its reduction}
   f_padic, scalars1  := reducemodel_padic(f);
   f_unit, scalars2 := reducemodel_units(f_padic);
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
@@ -1010,7 +1010,7 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
       Append(~new_fuvs, <#Sprint(guv),guv,ab>);
     end if;
     // JV: possibly redundantly, clear denominators one last time
-    end for;
+  end for;
 
   Sort(~new_fuvs);
   new_fuv:=new_fuvs[1,2];
