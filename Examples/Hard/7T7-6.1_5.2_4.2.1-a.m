@@ -22,11 +22,8 @@ phee;
 #Sprint(phi);
 #Sprint(phee);
 
-<<<<<<< HEAD
 AllReducedEquations(phi : effort := 10, degree := 2);
 
-=======
->>>>>>> 6a22d01f26e39a86f04dc3b16566bbc0c41ec3b0
 /*
 RsandPs := Support(Divisor(phi));
 RsandQs := Support(Divisor(phi-1));
