@@ -174,7 +174,7 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
       m:=Isomorphism(E1,E2,[0,0,0,1/u0]);
       phi2:=Pushforward(m,phi1);
       sprint_phi1:=Sprint(phi1);
-      sprint_phi2:=Sprint(phi2);
+      sprint_phi2:=Sprint(phi2); #sprint_phi2;
       //u:=u*u0;
     end while;
 

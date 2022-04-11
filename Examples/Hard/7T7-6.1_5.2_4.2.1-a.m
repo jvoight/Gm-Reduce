@@ -22,6 +22,27 @@ phee;
 #Sprint(phi);
 #Sprint(phee);
 
+/* The trial reduction for p=2
+>     phi1:=phi;
+>     phi2:=phi;
+>     sprint_phi1:=Sprint(phi1);
+>     sprint_phi2:=Sprint(phi2);
+>     while #sprint_phi2 le #sprint_phi1 do
+while>       phi1:=phi2;
+while>       E1:=Curve(Parent(phi1));
+while>       fw:=Kw!HyperellipticPolynomials(E1);
+while>       E2:=EllipticCurve(Evaluate(fw,u0^2*w)/u0^6);
+while>       m:=Isomorphism(E1,E2,[0,0,0,1/u0]);
+while>       phi2:=Pushforward(m,phi1);
+while>       sprint_phi1:=Sprint(phi1);
+while>       sprint_phi2:=Sprint(phi2); #sprint_phi2;
+while>       //u:=u*u0;
+while>     end while;
+107322
+107265
+107255
+108260
+*/
 /*
 RsandPs := Support(Divisor(phi));
 RsandQs := Support(Divisor(phi-1));
