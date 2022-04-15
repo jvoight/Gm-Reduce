@@ -140,7 +140,6 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
   K:=BaseRing(X);
   Kw<w>:=PolynomialRing(K);
 
-/*
   S1:=&cat[ Eltseq(c) : c in Coefficients(Numerator(phi)) ]
   cat &cat[ Eltseq(c) : c in Coefficients(Denominator(phi)) ];
 
@@ -148,10 +147,9 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
   cat &cat[ TrialDivision(Integers()!Denominator(a)) : a in S1  ];
 
   S3:= Setseq(Set([a[1] : a in S2]));
-*/
 
   E1:=X;
-  for p in PrimesUpTo(100) do
+  for p in S3 do
     fw:=Kw!HyperellipticPolynomials(E1);
     u0:=p;
     E2:=EllipticCurve(Evaluate(fw,(w*u0^2))/u0^6);
@@ -1066,8 +1064,8 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
   coefs:=Coefficients(f);
   //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
 
-//  UK,mUK:=UnitGroup(K);
-  UK, mUK := IndependentUnits(K);
+  UK, mUK:=UnitGroup(K);
+  // UK, mUK := IndependentUnits(K);
   k := RealField(prec);
   UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
 
