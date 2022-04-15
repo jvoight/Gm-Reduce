@@ -135,7 +135,6 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
   {Try to reduce an element of the function field naively over just the integers
   first we treat the number field element as just a variable and then fix it in reducemodel_padic}
 
-
   X:=Curve(Parent(phi));
   K:=BaseRing(X);
   Kw<w>:=PolynomialRing(K);
@@ -183,40 +182,6 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
 
   return phi;
 end intrinsic;
-
-
-/*  K<g> := BaseRing(BaseRing(Parent(phi)));
-  sprint_phi:= Sprint(phi);
-  for i in [1..#names] do
-    sprint_phi:=ReplaceAll(sprint_phi, Sprint(names[i]), Sprintf("X[%o]",i));
-  end for;
-
-  sprint_phi:=ReplaceAll(sprint_phi, "g", Sprintf("X[%o]",#names+1));
-  phi_multi:=KX!(eval sprint_phi);
-  phi_multi_reduced:=reducemodel_padic(phi_multi : FixedVariables:=[#names+1]);
-
-  phi_numerator:=Numerator(phi_multi);
-  phi_denominator:=Denominator(phi_multi);
-
-  p:=Numerator(phi);
-  n:=Denominator(phi);
-  [ Eltseq(a) : a in Coefficients(p) ];*/
-
-
-  /*fphi := Eltseq(phi_min)[1];
-  phi_pol:=Kx!Evaluate(Eltseq(phi_min)[1],x);
-
-  phi_multi:=Kyz!(eval ReplaceAll(ReplaceAll(Sprint(phi), "g","w"),"x","z"));
-  phi_multi_reduced:=reducemodel_padic(phi_multi : FixedVariables:=[1]);
-
-  //coefs_phi:= Coefficients(phi_pol);
-
-  Kx!(eval ReplaceAll(ReplaceAll(Sprint(phi_multi_reduced),"w","g"),"z","x"));
-
-  /*coefs_and_monomials := [ <Coefficients(phi_pol)[i], Monomials(phi_pol)[i]> : i in [1..#Coefficients(phi_pol)] ];
-  multi_phi:= &+[ (&+[ Eltseq(coefs_and_monomials[j,1])[i]*g^(i-1) : i in [1..#Degree(K)] ])*;*/
-
-  //[ [ Valuation(c,2) : c in Eltseq(coefs_and_monomialdegrees[i,1]) ] : i in [1..#coefs_and_monomialdegrees] ];*/
 
 
 
