@@ -718,8 +718,8 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
     lp_size:=(var_size+1)*#SS;
     obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] );
   else
-    lp_size:=(var_size+1)*#SS+var_size+1;
-    obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] cat [0 : w in [1..var_size+1]]);
+    lp_size:=(var_size+1)*(#SS+#Generators(Cl));
+    obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] cat [0 : w in [1..#Generators(Cl)*(var_size+1)]]);
   end if;
 
   L := LPProcess(k, lp_size);
@@ -729,7 +729,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
   if h eq 1 then
     extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]];
   else
-    extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..var_size+1] ];
+    extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..#Generators(Cl)*(var_size+1)] ];
   end if;
 
   for i in [1..#SS] do
@@ -745,11 +745,31 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
     for w in [1..var_size+1] do
       //add in the constraints to be principal one variable at a time
       zeroes:= [ 0 : t in [1..var_size] ];
-      principal_constraint:=&cat[ Insert(zeroes, w,w-1, [ Eltseq(pm(SS[j]))[1]]) : j in [1..#SS] ];
-      principal_constraint:=principal_constraint cat Insert(zeroes, w,w-1, [h]);
-      principal_constraint_lhs:=Matrix(k,1,(var_size+1)*(#SS+1),principal_constraint);
-      principal_constraint_rhs:=Matrix(k,1,1,[0]);
-      AddConstraints(L, principal_constraint_lhs, principal_constraint_rhs : Rel := "eq");
+      for m in [1..#Generators(Cl)] do
+
+        Clcon:=[];
+        for v in [1..#Generators(Cl)] do
+          if v eq m then
+            Append(~Clcon,Order(Cl.m));
+          else
+            Append(~Clcon,0);
+          end if;
+        end for;
+        Clzeroes:=[];
+        for s in [1..var_size+1] do
+          if s eq w then
+            Append(~Clzeroes,Clcon);
+          else
+            Append(~Clzeroes,[ 0 : n in [1..#Generators(Cl)] ]);
+          end if;
+        end for;
+        Clzeroes:=&cat(Clzeroes);
+
+        principal_constraint:=&cat[ Insert(zeroes, w,w-1, [ Eltseq(pm(SS[j]))[m] ]) : j in [1..#SS] ];
+        principal_constraint_lhs:=Matrix(k,1,(var_size+1)*(#SS+#Generators(Cl)),principal_constraint cat Clzeroes);
+        principal_constraint_rhs:=Matrix(k,1,1,[0]);
+        AddConstraints(L, principal_constraint_lhs, principal_constraint_rhs : Rel := "eq");
+      end for;
     end for;
   end if;
 
