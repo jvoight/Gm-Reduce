@@ -22,6 +22,8 @@ phee;
 #Sprint(phi);
 #Sprint(phee);
 
+AllReducedEquations(phi : effort := 10, degree := 2);
+
 /*
 RsandPs := Support(Divisor(phi));
 RsandQs := Support(Divisor(phi-1));
@@ -45,6 +47,7 @@ fmod:=model(phi,x_op); fmod;
 fp:=reducemodel_padic(fmod); fp;
 funit:=reducemodel_units(fp);
 funit;
+*/
 
 
 

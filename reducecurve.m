@@ -272,7 +272,7 @@ end intrinsic;
 
 
 intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
-  {Given a mutlivariate polynomial return it's reduction}
+  {Given a multivariate polynomial return its reduction}
   f_padic, scalars1  := reducemodel_padic(f);
   f_unit, scalars2 := reducemodel_units(f_padic);
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
@@ -807,7 +807,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
 
   guv:=Evaluate(f,[(BaseRing(Parent(f))!scaling_factors[i])*variables[i] : i in [1..var_size]])*BaseRing(Parent(f))!scaling_factors[var_size+1];
 
-  return guv, scaling_factors;
+  return guv, [K!el : el in scaling_factors];
 end intrinsic;
 
 
@@ -1030,7 +1030,7 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
       Append(~new_fuvs, <#Sprint(guv),guv,ab>);
     end if;
     // JV: possibly redundantly, clear denominators one last time
-    end for;
+  end for;
 
   Sort(~new_fuvs);
   new_fuv:=new_fuvs[1,2];
@@ -1107,7 +1107,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
     soln:= [ Eltseq(soln)[i] : i in [1..(var_size+1)*#UU] ];
     soln_rounded:=[ Round(a) : a in soln ];
 
-    eps_soln:= [ &*[ UU[i]^soln_rounded[k*#UU+i] : i in [1..#UU] ] : k in [0..var_size] ];
+    eps_soln:= [K! &*[ UU[i]^soln_rounded[k*#UU+i] : i in [1..#UU] ] : k in [0..var_size] ];
     assert #eps_soln eq var_size + 1;
     guv:=Evaluate(f,[eps_soln[i]*variables[i] : i in [1..var_size]])*eps_soln[var_size+1];
 
