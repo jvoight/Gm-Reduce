@@ -238,8 +238,17 @@ end intrinsic;
 
 intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
   {Given a multivariate polynomial return its reduction}
+  t0:=Cputime();
+  print "Starting p-adic reduction";
   f_padic, scalars1  := reducemodel_padic(f);
+  t1:=Cputime();
+  printf "Done with p-adic, it took %o seconds\n", t1-t0;
+
+  t0:=Cputime();
+  print "Starting unit reduction";
   f_unit, scalars2 := reducemodel_units(f_padic);
+  t1:=Cputime();
+  printf "Done with units, it took %o seconds\n", t1-t0;
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
 end intrinsic;
 
@@ -329,8 +338,14 @@ intrinsic S3Orbit(f::RngMPolElt) -> SeqEnum
   return [ Parent(f)!S3Action(el, f) : el in Sym(3) ];
 end intrinsic;
 
-intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 10, degree := 0) -> SeqEnum
+intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> SeqEnum
   {}
+
+  Kinit:=BaseRing(BaseRing(Parent(phi)));
+  if effort eq 0 then
+    //wild effort hack
+    effort:=Max(Floor(-2*(Degree(Kinit))/3+11),1);
+  end if;
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
@@ -338,13 +353,25 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 10, degree := 0) ->
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 
+  t0:=Cputime();
+  print "Starting to compute SmallFunctions()";
   xs := SmallFunctions(PsQsRs, degree);
+  t1:=Cputime();
+  printf "Done with SmallFunctions(), it took %o seconds\n", t1-t0;
+
+  t0:=Cputime();
+  print "Starting to compute SortSmallFunctions()";
   ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
+
   while #ts_xs_Fs_sorted eq 0 do
     degree +:= 1;
+    printf "degree is now %o", degree;
     xs := SmallFunctions(PsQsRs, degree);
     ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
   end while;
+  t1:=Cputime();
+  printf "Done with SortSmallFunctions(), it took %o seconds\n", t1-t0;
+
   reduced_models := [];
   for tup in ts_xs_Fs_sorted do
     t, x, F := Explode(tup);
@@ -681,8 +708,8 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
     lp_size:=(var_size+1)*#SS;
     obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] );
   else
-    lp_size:=(var_size+1)*#SS+var_size+1;
-    obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] cat [0 : w in [1..var_size+1]]);
+    lp_size:=(var_size+1)*(#SS+#Generators(Cl));
+    obj:= Matrix(k,1,lp_size,&cat[ [ Log(Norm(SS[j]))*(&+[ m[i] : m in mexps]) : i in [1..var_size] ] cat [Log(Norm(SS[j]))*m] : j in [1..#SS] ] cat [0 : w in [1..#Generators(Cl)*(var_size+1)]]);
   end if;
 
   L := LPProcess(k, lp_size);
@@ -692,7 +719,7 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
   if h eq 1 then
     extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]];
   else
-    extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..var_size+1] ];
+    extra_zeroes:=[ 0 : t in [1..(var_size+1)*(#SS-1)]] cat [ 0 : w in [1..#Generators(Cl)*(var_size+1)] ];
   end if;
 
   for i in [1..#SS] do
@@ -708,11 +735,31 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
     for w in [1..var_size+1] do
       //add in the constraints to be principal one variable at a time
       zeroes:= [ 0 : t in [1..var_size] ];
-      principal_constraint:=&cat[ Insert(zeroes, w,w-1, [ Eltseq(pm(SS[j]))[1]]) : j in [1..#SS] ];
-      principal_constraint:=principal_constraint cat Insert(zeroes, w,w-1, [h]);
-      principal_constraint_lhs:=Matrix(k,1,(var_size+1)*(#SS+1),principal_constraint);
-      principal_constraint_rhs:=Matrix(k,1,1,[0]);
-      AddConstraints(L, principal_constraint_lhs, principal_constraint_rhs : Rel := "eq");
+      for m in [1..#Generators(Cl)] do
+
+        Clcon:=[];
+        for v in [1..#Generators(Cl)] do
+          if v eq m then
+            Append(~Clcon,Order(Cl.m));
+          else
+            Append(~Clcon,0);
+          end if;
+        end for;
+        Clzeroes:=[];
+        for s in [1..var_size+1] do
+          if s eq w then
+            Append(~Clzeroes,Clcon);
+          else
+            Append(~Clzeroes,[ 0 : n in [1..#Generators(Cl)] ]);
+          end if;
+        end for;
+        Clzeroes:=&cat(Clzeroes);
+
+        principal_constraint:=&cat[ Insert(zeroes, w,w-1, [ Eltseq(pm(SS[j]))[m] ]) : j in [1..#SS] ];
+        principal_constraint_lhs:=Matrix(k,1,(var_size+1)*(#SS+#Generators(Cl)),principal_constraint cat Clzeroes);
+        principal_constraint_rhs:=Matrix(k,1,1,[0]);
+        AddConstraints(L, principal_constraint_lhs, principal_constraint_rhs : Rel := "eq");
+      end for;
     end for;
   end if;
 
@@ -985,9 +1032,14 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
 end intrinsic;
 
 
-intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   {}
   K := BaseRing(Parent(f));
+  if prec eq 0 then
+    //wild guess imprecise
+    prec:=Floor(Sqrt(Degree(K)))*100;
+  end if;
+
   //u := Parent(fuv).1;
   //v := Parent(fuv).2;
   ZK := Integers(K);
@@ -1002,7 +1054,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
   inf_places:=InfinitePlaces(K);
   assert #inf_places eq r+s;
   phi:=function(x);
-    return [ Log(Abs(Evaluate(x,v))) : v in inf_places ];
+    return [ Log(Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
   end function;
 
   mexps := [ Exponents(m) : m in Monomials(f) ];
