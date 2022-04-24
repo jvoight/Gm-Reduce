@@ -4,7 +4,7 @@ AttachSpec("spec");
 
 /*
 filenames:=[
-"6T15-[5,5,4]-51-51-42-g1.m", unit group in magma not same as lmfdb??
+"6T15-[5,5,4]-51-51-42-g1.m",
 "7T7-[5,12,12]-511-43-43-g1.m",
 "5T5-[5,4,4]-5-41-41-g1.m",
 "5T4-[5,5,2]-5-5-221-g1.m",

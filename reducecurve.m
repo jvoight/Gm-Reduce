@@ -135,7 +135,6 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
   {Try to reduce an element of the function field naively over just the integers
   first we treat the number field element as just a variable and then fix it in reducemodel_padic}
 
-
   X:=Curve(Parent(phi));
   K:=BaseRing(X);
   Kw<w>:=PolynomialRing(K);
@@ -174,7 +173,7 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
       m:=Isomorphism(E1,E2,[0,0,0,1/u0]);
       phi2:=Pushforward(m,phi1);
       sprint_phi1:=Sprint(phi1);
-      sprint_phi2:=Sprint(phi2);
+      sprint_phi2:=Sprint(phi2); #sprint_phi2;
       //u:=u*u0;
     end while;
 
@@ -183,40 +182,6 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
 
   return phi;
 end intrinsic;
-
-
-/*  K<g> := BaseRing(BaseRing(Parent(phi)));
-  sprint_phi:= Sprint(phi);
-  for i in [1..#names] do
-    sprint_phi:=ReplaceAll(sprint_phi, Sprint(names[i]), Sprintf("X[%o]",i));
-  end for;
-
-  sprint_phi:=ReplaceAll(sprint_phi, "g", Sprintf("X[%o]",#names+1));
-  phi_multi:=KX!(eval sprint_phi);
-  phi_multi_reduced:=reducemodel_padic(phi_multi : FixedVariables:=[#names+1]);
-
-  phi_numerator:=Numerator(phi_multi);
-  phi_denominator:=Denominator(phi_multi);
-
-  p:=Numerator(phi);
-  n:=Denominator(phi);
-  [ Eltseq(a) : a in Coefficients(p) ];*/
-
-
-  /*fphi := Eltseq(phi_min)[1];
-  phi_pol:=Kx!Evaluate(Eltseq(phi_min)[1],x);
-
-  phi_multi:=Kyz!(eval ReplaceAll(ReplaceAll(Sprint(phi), "g","w"),"x","z"));
-  phi_multi_reduced:=reducemodel_padic(phi_multi : FixedVariables:=[1]);
-
-  //coefs_phi:= Coefficients(phi_pol);
-
-  Kx!(eval ReplaceAll(ReplaceAll(Sprint(phi_multi_reduced),"w","g"),"z","x"));
-
-  /*coefs_and_monomials := [ <Coefficients(phi_pol)[i], Monomials(phi_pol)[i]> : i in [1..#Coefficients(phi_pol)] ];
-  multi_phi:= &+[ (&+[ Eltseq(coefs_and_monomials[j,1])[i]*g^(i-1) : i in [1..#Degree(K)] ])*;*/
-
-  //[ [ Valuation(c,2) : c in Eltseq(coefs_and_monomialdegrees[i,1]) ] : i in [1..#coefs_and_monomialdegrees] ];*/
 
 
 
@@ -273,8 +238,17 @@ end intrinsic;
 
 intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
   {Given a multivariate polynomial return its reduction}
+  t0:=Cputime();
+  print "Starting p-adic reduction";
   f_padic, scalars1  := reducemodel_padic(f);
+  t1:=Cputime();
+  printf "Done with p-adic, it took %o seconds\n", t1-t0;
+
+  t0:=Cputime();
+  print "Starting unit reduction";
   f_unit, scalars2 := reducemodel_units(f_padic);
+  t1:=Cputime();
+  printf "Done with units, it took %o seconds\n", t1-t0;
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
 end intrinsic;
 
@@ -364,8 +338,14 @@ intrinsic S3Orbit(f::RngMPolElt) -> SeqEnum
   return [ Parent(f)!S3Action(el, f) : el in Sym(3) ];
 end intrinsic;
 
-intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 10, degree := 0) -> SeqEnum
+intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> SeqEnum
   {}
+
+  Kinit:=BaseRing(BaseRing(Parent(phi)));
+  if effort eq 0 then
+    //wild effort hack
+    effort:=Max(Floor(-2*(Degree(Kinit))/3+11),1);
+  end if;
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
@@ -373,13 +353,25 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 10, degree := 0) ->
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 
+  t0:=Cputime();
+  print "Starting to compute SmallFunctions()";
   xs := SmallFunctions(PsQsRs, degree);
+  t1:=Cputime();
+  printf "Done with SmallFunctions(), it took %o seconds\n", t1-t0;
+
+  t0:=Cputime();
+  print "Starting to compute SortSmallFunctions()";
   ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
+
   while #ts_xs_Fs_sorted eq 0 do
     degree +:= 1;
+    printf "degree is now %o", degree;
     xs := SmallFunctions(PsQsRs, degree);
     ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
   end while;
+  t1:=Cputime();
+  printf "Done with SortSmallFunctions(), it took %o seconds\n", t1-t0;
+
   reduced_models := [];
   for tup in ts_xs_Fs_sorted do
     t, x, F := Explode(tup);
@@ -1040,9 +1032,14 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
 end intrinsic;
 
 
-intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   {}
   K := BaseRing(Parent(f));
+  if prec eq 0 then
+    //wild guess imprecise
+    prec:=Floor(Sqrt(Degree(K)))*100;
+  end if;
+
   //u := Parent(fuv).1;
   //v := Parent(fuv).2;
   ZK := Integers(K);
@@ -1057,7 +1054,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=100) -> RngMPolElt, SeqEnum
   inf_places:=InfinitePlaces(K);
   assert #inf_places eq r+s;
   phi:=function(x);
-    return [ Log(Abs(Evaluate(x,v))) : v in inf_places ];
+    return [ Log(Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
   end function;
 
   mexps := [ Exponents(m) : m in Monomials(f) ];
