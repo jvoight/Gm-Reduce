@@ -525,7 +525,7 @@ end intrinsic;
 
 
 
-intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMatRngElt) -> LP
+intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMatRngElt : prec:=100) -> LP
   {}/*we turn minimising the function \sum_{i=1..m} | a_{i,1}x_1 + ... + a_{i,n}x_n + b_i |
    into a linear program. The input is coefficients which is an mxn matrix of coefficients a_{i,j}
    and and mx1 matrix of the {b_i}. The output is an equivalent linear program */
@@ -561,7 +561,14 @@ intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMa
   return L;
 end intrinsic;
 
-
+intrinsic RemoveInfinitesimal(a::FldReElt,N::FldRatElt,prec::RngIntElt) -> FldReElt
+  {If |a| < N then return 0, else return a}
+  if Abs(a) lt RealField(prec)!N then
+    return Parent(a)!0;
+  else
+    return a;
+  end if;
+end intrinsic;
 
 
 intrinsic CoefficientSupport(f::RngMPolElt) -> SeqEnum
@@ -1063,14 +1070,15 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
 
   UK,mUK:=UnitGroup(K);
   k := RealField(prec);
-  UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  //UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) and k!0 notin phi(K!(mUK(eps)))  ];
 
   if UU eq [] then
-    return f, [K!1: i in [1..var_size+1]];
+    return f, [K!1: i in [1..var_size+1] ];
   else
 
-    constants:=[];
-    abs_coef:=[];
+    constants := [];
+    abs_coef := [];
   	for n in [1..#mexps] do
 
       alpha_norm := Log(Abs(Norm(coefs[n])))/(r+s);
@@ -1095,7 +1103,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
     constants:=Matrix(k,constants);
     abs_coef:=Matrix(k,abs_coef);
 
-    L:=MinimiseL1ToLinearProgram(abs_coef, constants);
+    L:=MinimiseL1ToLinearProgram(abs_coef, constants : prec:=prec);
     //fix_var:=[0,1] cat [0: i in [1..NumberOfVariables(L)-2]]; fix a variable
     //AddConstraints(L, Matrix(k,1,NumberOfVariables(L),fix_var),  Matrix(k,1,1,[0]) : Rel := "eq");
 
