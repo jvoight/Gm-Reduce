@@ -1,7 +1,8 @@
 {
   magma_to_lmfdb.m
   reduce-curve.m
+  linear-program.m
   monomials.m
-  reducecurve.m
+  small-functions.m
   utils.m
 }
