@@ -530,42 +530,6 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
   return new_fuv, new_scaling;
 end intrinsic;
 
-intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMatRngElt) -> LP
-  {}/*we turn minimising the function \sum_{i=1..m} | a_{i,1}x_1 + ... + a_{i,n}x_n + b_i |
-   into a linear program. The input is coefficients which is an mxn matrix of coefficients a_{i,j}
-   and and mx1 matrix of the {b_i}. The output is an equivalent linear program */
-
-  k:=BaseRing(coefficients);
-  rows:=Rows(coefficients);
-  row_no:=NumberOfRows(coefficients);
-  column_no:=NumberOfColumns(coefficients);
-  var_no:=row_no+column_no;
- 	L := LPProcess(k, var_no);
- 	obj:=Matrix(k,1,var_no,[0 : i in [1..column_no]] cat [1 : i in [1..row_no]]);
- 	SetObjectiveFunction(L, obj);
-  SetIntegerSolutionVariables(L,[ i : i in [1..var_no]], true);
-
-
- 	for m in [1..row_no] do
-
-    extra_var:=[ 0 : k in [1..row_no-1] ];
-    Insert(~extra_var, m, -1);
-		lhs1:= Matrix(k,1,var_no, Eltseq(rows[m]) cat extra_var);
-		lhs2:= Matrix(k,1,var_no, Eltseq(-rows[m]) cat extra_var);
-
-		rhs1:= Matrix(k,-constants[m]);
-		rhs2:= Matrix(k,constants[m]);
-
-		AddConstraints(L, lhs1, rhs1 : Rel := "le");
-		AddConstraints(L, lhs2, rhs2 : Rel := "le");
-
-		AddConstraints(L, Matrix(k,1,var_no, [0 : i in [1..column_no]] cat extra_var), Matrix(k,[[0]]) : Rel :="le");
-  end for;
-  for i in [1..var_no] do  SetLowerBound(L, i, k!-10000); end for;
-
-  return L;
-end intrinsic;
-
 intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   {}
   K := BaseRing(Parent(f));
