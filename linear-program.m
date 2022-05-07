@@ -53,9 +53,61 @@ intrinsic TrialReduction(phi::FldFunFracSchElt) -> FldFunFracSchElt
   return phi;
 end intrinsic;
 
-intrinsic CoefficientValuationsSum(f::., pp::.) -> Any
-  {}
-  return &+[ Valuation(a,pp) : a in Coefficients(f) ], [ Valuation(a,pp) : a in Coefficients(f) ];
+intrinsic BelyiObjectiveFunction(fuv::RngMPolElt) -> RngMPolElt
+  {Given a polynomial or rational function fuv in 2 variables, return...?} // TODO: finish doc string
+  K := BaseRing(Parent(fuv));
+  u := Parent(fuv).1;
+  v := Parent(fuv).2;
+  Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
+  mexps := [ Exponents(m) : m in Monomials(fuv) ];
+  coefs:=Coefficients(fuv);
+  assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+  return (&+[ m[1] : m in mexps])*x1 + (&+[ m[2] : m in mexps])*x2 + #mexps*x3;
+end intrinsic;
+
+intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMatRngElt : prec:=100) -> LP
+  {}/*we turn minimising the function \sum_{i=1..m} | a_{i,1}x_1 + ... + a_{i,n}x_n + b_i |
+   into a linear program. The input is coefficients which is an mxn matrix of coefficients a_{i,j}
+   and and mx1 matrix of the {b_i}. The output is an equivalent linear program */
+
+  k:=BaseRing(coefficients);
+  rows:=Rows(coefficients);
+  row_no:=NumberOfRows(coefficients);
+  column_no:=NumberOfColumns(coefficients);
+  var_no:=row_no+column_no;
+ 	L := LPProcess(k, var_no);
+ 	obj:=Matrix(k,1,var_no,[0 : i in [1..column_no]] cat [1 : i in [1..row_no]]);
+ 	SetObjectiveFunction(L, obj);
+  SetIntegerSolutionVariables(L,[ i : i in [1..var_no]], true);
+
+
+ 	for m in [1..row_no] do
+
+    extra_var:=[ 0 : k in [1..row_no-1] ];
+    Insert(~extra_var, m, -1);
+		lhs1:= Matrix(k,1,var_no, Eltseq(rows[m]) cat extra_var);
+		lhs2:= Matrix(k,1,var_no, Eltseq(-rows[m]) cat extra_var);
+
+		rhs1:= Matrix(k,-constants[m]);
+		rhs2:= Matrix(k,constants[m]);
+
+		AddConstraints(L, lhs1, rhs1 : Rel := "le");
+		AddConstraints(L, lhs2, rhs2 : Rel := "le");
+
+		AddConstraints(L, Matrix(k,1,var_no, [0 : i in [1..column_no]] cat extra_var), Matrix(k,[[0]]) : Rel :="le");
+  end for;
+  for i in [1..var_no] do  SetLowerBound(L, i, k!-10000); end for;
+
+  return L;
+end intrinsic;
+
+intrinsic RemoveInfinitesimal(a::FldReElt,N::FldRatElt,prec::RngIntElt) -> FldReElt
+  {If |a| < N then return 0, else return a}
+  if Abs(a) lt RealField(prec)!N then
+    return Parent(a)!0;
+  else
+    return a;
+  end if;
 end intrinsic;
 
 intrinsic CoefficientSupport(f::RngMPolElt) -> SeqEnum
@@ -545,14 +597,15 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
 
   UK,mUK:=UnitGroup(K);
   k := RealField(prec);
-  UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  //UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) and k!0 notin phi(K!(mUK(eps)))  ];
 
   if UU eq [] then
-    return f, [K!1: i in [1..var_size+1]];
+    return f, [K!1: i in [1..var_size+1] ];
   else
 
-    constants:=[];
-    abs_coef:=[];
+    constants := [];
+    abs_coef := [];
   	for n in [1..#mexps] do
 
       alpha_norm := Log(Abs(Norm(coefs[n])))/(r+s);
@@ -577,7 +630,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
     constants:=Matrix(k,constants);
     abs_coef:=Matrix(k,abs_coef);
 
-    L:=MinimiseL1ToLinearProgram(abs_coef, constants);
+    L:=MinimiseL1ToLinearProgram(abs_coef, constants : prec:=prec);
     //fix_var:=[0,1] cat [0: i in [1..NumberOfVariables(L)-2]]; fix a variable
     //AddConstraints(L, Matrix(k,1,NumberOfVariables(L),fix_var),  Matrix(k,1,1,[0]) : Rel := "eq");
 
