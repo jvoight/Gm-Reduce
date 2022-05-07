@@ -1,5 +1,7 @@
-A2<u,v>:=AffineSpace(RationalsAsNumberField(),2);
-R<u,v>:=PolynomialRing(RationalsAsNumberField(),2);
+Rx<x>:=PolynomialRing(Rationals());
+K<nu>:=NumberField(x^2+1);
+A2<u,v>:=AffineSpace(K,2);
+R<u,v>:=PolynomialRing(K,2);
 //X:=Curve(ProjectiveSpace(PolynomialRing(Rationals(),2)));
 X:=Curve(A2,u^2+v^2+1);
 KX<u,v>:=FunctionField(X);
