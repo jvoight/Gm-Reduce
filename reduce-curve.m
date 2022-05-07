@@ -116,6 +116,8 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> 
   t1:=Cputime();
   printf "Done with SortSmallFunctions(), it took %o seconds\n", t1-t0;
 
+  printf "Computing reduced models...";
+  t0 := Cputime();
   reduced_models := [];
   for tup in ts_xs_Fs_sorted do
     t, x, F := Explode(tup);
@@ -123,6 +125,8 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> 
     // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
     Append(~reduced_models, <#Sprint(fred), t, x, fred, scalars>);
   end for;
+  t1 := Cputime();
+  printf "done. That took %o seconds\n", t1 - t0;
   Sort(~reduced_models);
   // return reduced_models;
   return [ <reddat[4], reddat[5]> : reddat in reduced_models];
