@@ -556,7 +556,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   inf_places:=InfinitePlaces(K);
   assert #inf_places eq r+s;
   phi:=function(x);
-    return [ Log(Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
+    return [ Log(k!Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
   end function;
 
   mexps := [ Exponents(m) : m in Monomials(f) ];
@@ -576,15 +576,15 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
     abs_coef := [];
   	for n in [1..#mexps] do
 
-      alpha_norm := Log(Abs(Norm(coefs[n])))/(r+s);
+      alpha_norm := Log(k!Abs(Norm(coefs[n])))/(r+s);
       log_coef:= phi(coefs[n]);
 
   		for m in [1..r+s] do
 
         if m le r then
-          const:= Log(Abs(Evaluate(coefs[n], inf_places[m]))) - Log(Abs(Norm(coefs[n])))/(r+s);
+          const:= Log(k!Abs(Evaluate(coefs[n], inf_places[m]))) - Log(k!Abs(Norm(coefs[n])))/(r+s);
         else
-          const:= Log(Abs(Evaluate(coefs[n], inf_places[m]))) - Log(Abs(Norm(coefs[n])))/(2*(r+s));
+          const:= Log(k!Abs(Evaluate(coefs[n], inf_places[m]))) - Log(k!Abs(Norm(coefs[n])))/(2*(r+s));
         end if;
         Append(~constants, [const]);
 
