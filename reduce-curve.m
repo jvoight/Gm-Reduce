@@ -146,3 +146,27 @@ intrinsic PlaneModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolEl
   {}
   return model(phi,x_op);
 end intrinsic;
+
+
+intrinsic UnreducedModel(phi::FldFunFracSchElt) -> RngMPolElt
+  {return the first plane model/polynomial using sort small functions}
+  Kinit:=BaseRing(BaseRing(Parent(phi)));
+  degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
+  RsandPs := Support(Divisor(phi));
+  RsandQs := Support(Divisor(phi-1));
+  PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
+
+  xs := SmallFunctions(PsQsRs, degree);
+  ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := 1);
+
+  while #ts_xs_Fs_sorted eq 0 do
+    degree +:= 1;
+    printf "degree is now %o", degree;
+    xs := SmallFunctions(PsQsRs, degree);
+    ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := 1);
+  end while;
+
+  tup := ts_xs_Fs_sorted[1];
+  t, x, F := Explode(tup);
+  return model(t,x);
+end intrinsic;
