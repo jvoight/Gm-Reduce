@@ -18,13 +18,32 @@ phi := (1/1386787085942853910816004849079679630765583800601161581453469461789044
 //print "phi has divisor";
 //Support(Divisor(phi));
 AttachSpec("spec");
+Kinit:=BaseRing(BaseRing(Parent(phi)));
+effort:=0; degree:=0;
+if effort eq 0 then
+  //wild effort hack
+  effort:=Max(Floor(-2*(Degree(Kinit))/3+11),1);
+end if;
+if degree eq 0 then
+  degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
+end if;
+
+RsandPs := Support(Divisor(phi));
+RsandQs := Support(Divisor(phi-1));
+PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
+
+xs := SmallFunctions(PsQsRs, degree);
+ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
+
+
+f:=model(phi);
+
 phee:=TrialReduction(phi);
 phee;
 #Sprint(phi);
 #Sprint(phee);
 
-AllReducedEquations(phi : effort := 10, degree := 2);
-*/
+AllReducedEquations(phi : effort := 1, degree := 2);
 
 /*
 RsandPs := Support(Divisor(phi));

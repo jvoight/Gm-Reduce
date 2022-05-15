@@ -208,7 +208,7 @@ intrinsic IgnorePrime(f::RngMPolElt,pp::RngOrdIdl) -> Any
   return ignore_prime;
 end intrinsic;
 
-intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[], PrimesForReduction:=[]) -> RngMPolElt, SeqEnum
   {Input: a multivariate polynomial f \in K[z_1,..,z_n]; Output: minimal and integral c*f(a_1z_1,...,a_nz_n) and [a_1,...,a_n,c]
   FixVariable is the set of variables to fix, include n+1 if no scaling is allowed}
   if BaseRing(Parent(f)) eq Rationals() then
@@ -231,7 +231,11 @@ intrinsic reducemodel_padic(f::RngMPolElt : FixedVariables:=[]) -> RngMPolElt, S
   //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
 
   //SS:= [ pp : pp in SS | Set([Valuation(cc,pp) : cc in coefs]) notin [{0,1},{0}] ];
-  support_init:=CoefficientSupport(f);
+  if PrimesForReduction eq [] then
+    support_init:=PrimesUpTo(10000,K);
+  else
+    support_init:=PrimesForReduction;
+  end if;
   SS:=[];
   for pp in support_init do
     cvals := [ Valuation(c,pp) : c in coefs  ];
@@ -552,7 +556,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   inf_places:=InfinitePlaces(K);
   assert #inf_places eq r+s;
   phi:=function(x);
-    return [ Log(Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
+    return [ Log(k!Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
   end function;
 
   mexps := [ Exponents(m) : m in Monomials(f) ];
@@ -573,15 +577,15 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
     abs_coef := [];
   	for n in [1..#mexps] do
 
-      alpha_norm := Log(Abs(Norm(coefs[n])))/(r+s);
+      alpha_norm := Log(k!Abs(Norm(coefs[n])))/(r+s);
       log_coef:= phi(coefs[n]);
 
   		for m in [1..r+s] do
 
         if m le r then
-          const:= Log(Abs(Evaluate(coefs[n], inf_places[m]))) - Log(Abs(Norm(coefs[n])))/(r+s);
+          const:= Log(k!Abs(Evaluate(coefs[n], inf_places[m]))) - Log(k!Abs(Norm(coefs[n])))/(r+s);
         else
-          const:= Log(Abs(Evaluate(coefs[n], inf_places[m]))) - Log(Abs(Norm(coefs[n])))/(2*(r+s));
+          const:= Log(k!Abs(Evaluate(coefs[n], inf_places[m]))) - Log(k!Abs(Norm(coefs[n])))/(2*(r+s));
         end if;
         Append(~constants, [const]);
 
@@ -595,7 +599,7 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
     constants:=Matrix(k,constants);
     abs_coef:=Matrix(k,abs_coef);
 
-    L:=MinimiseL1ToLinearProgram(abs_coef, constants : prec:=prec);
+    L:=MinimiseL1ToLinearProgram(abs_coef, constants);
     //fix_var:=[0,1] cat [0: i in [1..NumberOfVariables(L)-2]]; fix a variable
     //AddConstraints(L, Matrix(k,1,NumberOfVariables(L),fix_var),  Matrix(k,1,1,[0]) : Rel := "eq");
 
@@ -610,6 +614,47 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   	return guv, eps_soln;
   end if;
 end intrinsic;
+
+
+
+intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
+  {Try substituting increasing powers of fundamental units until it stops improving}
+
+  variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
+
+  K:=BaseRing(Parent(f));
+  UK, mUK := UnitGroup(Integers(K));
+
+  UU := [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  exp:=1;
+  us:= Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in UU ]));
+
+  yepdone := false;
+  oldlen := #Sprint(f);
+  //oldlen; Sprint(f);
+  repeat
+    S := [];
+    for u,v,w in us do
+      tuple:=[u,v,w];
+      Append(~S, <#Sprint(Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3]), tuple>);
+    end for;
+    Sort(~S);
+    if S[1][1] lt oldlen then
+      //print oldlen, S[1], exp;
+      oldlen := S[1][1];
+      exp := exp+1;
+      old_us:=us;
+      us:=Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in us ]));
+      us:= Setseq(Set(us) diff Set(old_us));
+    else
+      yepdone := true;
+    end if;
+  until yepdone;
+
+  tuple:=S[1,2];
+  return Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3], tuple;
+end intrinsic;
+
 
 intrinsic padic_LPsolutions(f::RngMPolElt, pp::RngOrdIdl) -> Any
   {return all of the points at which the objective function is minimal.}
@@ -672,6 +717,10 @@ intrinsic padic_LPsolutions(f::RngMPolElt, pp::RngOrdIdl) -> Any
   return solns;
   //all of the points at which the objective function is minimal.
 end intrinsic;
+
+
+
+
 
 intrinsic IdealShortVectorsProcess(I::RngOrdFracIdl, l::RngIntElt, u::RngIntElt : Minkowski:=true, timeout:=2) -> SeqEnum
   {Given an ideal I, thought of as a lattice, and integers l and u, return vectors in the lattice bounded by l and u scaled by a medium sized vector in parallelepiped.}
