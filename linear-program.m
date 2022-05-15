@@ -563,7 +563,8 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   coefs:=Coefficients(f);
   //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
 
-  UK,mUK:=UnitGroup(K);
+  UK, mUK:=UnitGroup(K);
+  // UK, mUK := IndependentUnits(K);
   k := RealField(prec);
   //UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
   UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) and k!0 notin phi(K!(mUK(eps)))  ];
