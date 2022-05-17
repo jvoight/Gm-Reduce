@@ -720,6 +720,88 @@ end intrinsic;
 
 
 
+intrinsic reducemodel_unitsL2(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
+  {return the quadratic form and average vector using the coefficients}
+  K := BaseRing(Parent(f));
+  if prec eq 0 then
+    //wild guess imprecise
+    prec:=Floor(Sqrt(Degree(K)))*100;
+  end if;
+
+  //u := Parent(fuv).1;
+  //v := Parent(fuv).2;
+  ZK := Integers(K);
+  r,s:=Signature(K);
+  k:=RealField(prec);
+  //Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
+
+  variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
+  var_size:=#variables;
+  ZK := Integers(K);
+
+  inf_places:=InfinitePlaces(K);
+  assert #inf_places eq r+s;
+  phi:=function(x);
+    return [ Log(k!Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
+    //assert first r places are real.
+  end function;
+
+  mexps := [ Exponents(m) : m in Monomials(f) ];
+  coefs:=Coefficients(f);
+  //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+
+  UK,mUK:=UnitGroup(K);
+  k := RealField(prec);
+  //UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) and k!0 notin phi(K!(mUK(eps)))  ];
+
+  if UU eq [] then
+    return f, [K!1: i in [1..var_size+1] ];
+  else
+
+
+    constants := [];
+    abs_coef := [];
+
+    for n in [1..#mexps] do
+
+      alpha_norm := Log(k!Abs(Norm(coefs[n])))/(r+s);
+      log_coef:= phi(coefs[n]);
+      tuple:=[];
+
+      for m in [1..r+s] do
+
+        if m le r then
+          const:= Log(Abs(Evaluate(coefs[n], inf_places[m] : Precision:=prec))) - Log(k!Abs(Norm(coefs[n])))/(r+s);
+        else
+          const:= Log(Abs(Evaluate(coefs[n], inf_places[m] : Precision:=prec))) - Log(k!Abs(Norm(coefs[n])))/(2*(r+s));
+        end if;
+        Append(~tuple, const);
+
+        etas:= [ phi(eps)[m] : eps in UU ];
+        lhs:=&cat[ [ eta*a : a in mexps[n] ] cat [eta] : eta in etas ];
+        Append(~abs_coef, lhs);
+
+      end for;
+      Append(~constants,tuple);
+    end for;
+
+    average:= [ &+[ (A[i])/#mexps : A in constants ] : i in [1..r+s] ];
+
+
+    L2coef:= [ &+[I[i] : I in mexps] : i in [1..var_size] ] cat [#mexps];
+    L2pols<[X]> := PolynomialRing(k,3*(r+s));
+    quadform_pol:= &+[ (L2coef[1]*X[i] + L2coef[1]*X[r+s+i] + L2coef[1]*X[2*(r+s)+i])^2 : i in [1..r+s] ];
+    L2mat:=SymmetricMatrix(quadform_pol);
+
+    return L2mat, average;
+
+  end if;
+
+
+end intrinsic;
+
+
 
 intrinsic IdealShortVectorsProcess(I::RngOrdFracIdl, l::RngIntElt, u::RngIntElt : Minkowski:=true, timeout:=2) -> SeqEnum
   {Given an ideal I, thought of as a lattice, and integers l and u, return vectors in the lattice bounded by l and u scaled by a medium sized vector in parallelepiped.}

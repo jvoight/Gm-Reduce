@@ -61,7 +61,6 @@ for n in [1..#mexps] do
 
   alpha_norm := Log(k!Abs(Norm(coefs[n])))/(r+s);
   log_coef:= phi(coefs[n]);
-
   tuple:=[];
 
   for m in [1..r+s] do
@@ -81,11 +80,18 @@ for n in [1..#mexps] do
   Append(~constants,tuple);
 end for;
 
-average
+average:= [ &+[ (A[i])/#mexps : A in constants ] : i in [1..r+s] ];
 
 
 V := VectorSpace(k,r+s);
 V0:= VectorSpace(k,(r+s)*#mexps);
+
+
+
+L2coef:= [ &+[I[i] : I in mexps] : i in [1..var_size] ] cat [#mexps];
+L2pols<[X]> := PolynomialRing(k,3*(r+s));
+quadform_pol:= &+[ (L2coef[1]*X[i] + L2coef[1]*X[r+s+i] + L2coef[1]*X[2*(r+s)+i])^2 : i in [1..r+s] ];
+L2mat:=SymmetricMatrix(quadform_pol);
 
 beta:=V0!constants;
 
