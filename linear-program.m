@@ -616,23 +616,28 @@ end intrinsic;
 
 
 
-intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEnum
   {Try substituting increasing powers of fundamental units until it stops improving}
 
+
+  if effort eq 0 then
+    exp:=5;
+  else
+    exp:=effort;
+  end if;
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
 
   K:=BaseRing(Parent(f));
   UK, mUK := UnitGroup(Integers(K));
 
   UU := [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
-  exp:=1;
   us:= Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in UU ]));
 
   yepdone := false;
   oldlen := #Sprint(f);
   //oldlen; Sprint(f);
   repeat
-    S := [];
+    S := [<#Sprint(f), [K!1,K!1,K!1]>];
     for u,v,w in us do
       tuple:=[u,v,w];
       Append(~S, <#Sprint(Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3]), tuple>);
