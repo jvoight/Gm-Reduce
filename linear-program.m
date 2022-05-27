@@ -618,7 +618,7 @@ end intrinsic;
 
 intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEnum
   {Try substituting increasing powers of fundamental units until it stops improving}
-  print "attempting to naive reduction of the units";
+  //print "attempting to naive reduction of the units";
   f_init:=f;
   if effort eq 0 then
     exp:=5;
@@ -638,7 +638,7 @@ intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEn
   //oldlen; Sprint(f);
 
   repeat
-    printf "trying units of exponent %o\n", exp;
+    //printf "trying units of exponent %o\n", exp;
     S := [<#Sprint(f), [K!1,K!1,K!1]>];
     for u,v,w in us do
       tuple:=[u,v,w];
@@ -668,7 +668,7 @@ intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEn
   max_exp:=10;
 
   repeat
-    printf "trying %o tuples of units with random exponents up to %o\n", no_tuples, max_exp;
+    //printf "trying %o tuples of units with random exponents up to %o\n", no_tuples, max_exp;
     B:=[<#Sprint(f), [K!1,K!1,K!1]>];
     ran :=[ [ [ Random(Integers(),max_exp) : i in [1..#UU] ] : j in [1..3] ] : k in [1..no_tuples] ];
     unit_tuples:= [ [ &*[ UU[i]^elt[i] : i in [1..#UU] ] : elt in list ] : list in ran ];
