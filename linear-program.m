@@ -616,23 +616,30 @@ end intrinsic;
 
 
 
-intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEnum
   {Try substituting increasing powers of fundamental units until it stops improving}
-
+  print "attempting to naive reduction of the units";
+  f_init:=f;
+  if effort eq 0 then
+    exp:=5;
+  else
+    exp:=effort;
+  end if;
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
 
   K:=BaseRing(Parent(f));
   UK, mUK := UnitGroup(Integers(K));
 
   UU := [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
-  exp:=1;
   us:= Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in UU ]));
 
   yepdone := false;
   oldlen := #Sprint(f);
   //oldlen; Sprint(f);
+
   repeat
-    S := [];
+    printf "trying units of exponent %o\n", exp;
+    S := [<#Sprint(f), [K!1,K!1,K!1]>];
     for u,v,w in us do
       tuple:=[u,v,w];
       Append(~S, <#Sprint(Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3]), tuple>);
@@ -643,7 +650,7 @@ intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
       oldlen := S[1][1];
       exp := exp+1;
       old_us:=us;
-      us:=Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in us ]));
+      us:=Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in UU ]));
       us:= Setseq(Set(us) diff Set(old_us));
     else
       yepdone := true;
@@ -651,7 +658,38 @@ intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
   until yepdone;
 
   tuple:=S[1,2];
-  return Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3], tuple;
+  f:=Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3];
+
+
+  yepdone := false;
+  oldlen := #Sprint(f);
+
+  no_tuples:=100;
+  max_exp:=10;
+
+  repeat
+    printf "trying %o tuples of units with random exponents up to %o\n", no_tuples, max_exp;
+    B:=[<#Sprint(f), [K!1,K!1,K!1]>];
+    ran :=[ [ [ Random(Integers(),max_exp) : i in [1..#UU] ] : j in [1..3] ] : k in [1..no_tuples] ];
+    unit_tuples:= [ [ &*[ UU[i]^elt[i] : i in [1..#UU] ] : elt in list ] : list in ran ];
+    //uus:= [ [ &*[ UU[i]^elt[i] : i in [1..#UU]] : elt in list ]: list in ran ];
+
+    for tup in unit_tuples do
+      Append(~B,<#Sprint(Evaluate(f,[tup[i]*variables[i] : i in [1..#variables]])*tup[3]), tup>);
+    end for;
+    Sort(~B);
+    if B[1][1] lt oldlen then
+      oldlen:=B[1,1];
+      tuple := [ tuple[i]*B[1,2][i] : i in [1..3] ];
+      f:=Evaluate(f,[B[1,2][i]*variables[i] : i in [1..#variables]])*B[1,2][3];
+    else
+      yepdone:=true;
+    end if;
+  until yepdone;
+
+  assert #Sprint(f) le #Sprint(f_init);
+  return f, tuple;
+
 end intrinsic;
 
 
