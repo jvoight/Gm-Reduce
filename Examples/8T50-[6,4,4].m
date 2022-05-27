@@ -3,8 +3,9 @@ AttachSpec("../Gm-Reduce/spec");
 SetDebugOnError(true);
 
 s := BelyiDBRead("8T50-[6,4,4]-611-422-4211-g0.m");
-phi:=BelyiMaps(s)[1];
-BestModel(phi);
+//phi:=BelyiMaps(s)[1];
+//BestModel(phi);
+BelyiDBToRows(s);
 
 
 
