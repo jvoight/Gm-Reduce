@@ -717,9 +717,6 @@ intrinsic padic_LPsolutions(f::RngMPolElt, pp::RngOrdIdl) -> Any
   //all of the points at which the objective function is minimal.
 end intrinsic;
 
-
-
-
 intrinsic reducemodel_unitsL2(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   {return the quadratic form and average vector using the coefficients}
   K := BaseRing(Parent(f));
@@ -758,8 +755,6 @@ intrinsic reducemodel_unitsL2(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   if UU eq [] then
     return f, [K!1: i in [1..var_size+1] ];
   else
-
-
     constants := [];
     abs_coef := [];
 
@@ -788,17 +783,12 @@ intrinsic reducemodel_unitsL2(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
 
     average:= [ &+[ (A[i])/#mexps : A in constants ] : i in [1..r+s] ];
 
-
     L2coef:= [ &+[I[i] : I in mexps] : i in [1..var_size] ] cat [#mexps];
     L2pols<[X]> := PolynomialRing(k,3*(r+s));
     quadform_pol:= &+[ (L2coef[1]*X[i] + L2coef[1]*X[r+s+i] + L2coef[1]*X[2*(r+s)+i])^2 : i in [1..r+s] ];
     L2mat:=SymmetricMatrix(quadform_pol);
-
-    return L2mat, average;
-
+    return L2mat, L2coef, average;
   end if;
-
-
 end intrinsic;
 
 

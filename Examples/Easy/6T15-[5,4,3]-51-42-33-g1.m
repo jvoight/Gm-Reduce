@@ -17,7 +17,7 @@ f:=UnreducedModel(phi);
 
 
 
-
+prec := 0;
 K := BaseRing(Parent(f));
 if prec eq 0 then
   //wild guess imprecise
@@ -38,7 +38,7 @@ ZK := Integers(K);
 inf_places:=InfinitePlaces(K);
 assert #inf_places eq r+s;
 phi:=function(x);
-  return [ Log(Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
+  return [ Log(k!Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
 end function;
 
 mexps := [ Exponents(m) : m in Monomials(f) ];
@@ -58,13 +58,11 @@ constants := [];
 abs_coef := [];
 
 for n in [1..#mexps] do
-
   alpha_norm := Log(k!Abs(Norm(coefs[n])))/(r+s);
   log_coef:= phi(coefs[n]);
   tuple:=[];
 
   for m in [1..r+s] do
-
     if m le r then
       const:= Log(Abs(Evaluate(coefs[n], inf_places[m] : Precision:=prec))) - Log(k!Abs(Norm(coefs[n])))/(r+s);
     else
@@ -93,9 +91,10 @@ L2pols<[X]> := PolynomialRing(k,3*(r+s));
 quadform_pol:= &+[ (L2coef[1]*X[i] + L2coef[1]*X[r+s+i] + L2coef[1]*X[2*(r+s)+i])^2 : i in [1..r+s] ];
 L2mat:=SymmetricMatrix(quadform_pol);
 
+constants := &cat constants;
 beta:=V0!constants;
 
-Lambda :=
+//Lambda :=
 
   constants:=Matrix(k,constants);
   abs_coef:=Matrix(k,abs_coef);
