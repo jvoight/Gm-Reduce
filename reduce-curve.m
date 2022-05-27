@@ -41,7 +41,8 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   //x=v, t=u
 end intrinsic;
 
-intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
+// where does effort get passed?
+intrinsic ReducedEquation(f::RngMPolElt : NaiveUnits := false) -> RngMPolElt
   {Given a multivariate polynomial return its reduction}
   t0:=Cputime();
   print "Starting p-adic reduction";
@@ -51,16 +52,20 @@ intrinsic ReducedEquation(f::RngMPolElt) -> RngMPolElt
 
   t0:=Cputime();
   print "Starting unit reduction";
-  f_unit, scalars2 := reducemodel_units(f_padic);
+  if NaiveUnits then
+    f_unit, scalars2 := reducemodel_units_naive(f_padic);
+  else
+    f_unit, scalars2 := reducemodel_units(f_padic);
+  end if;
   t1:=Cputime();
   printf "Done with units, it took %o seconds\n", t1-t0;
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
 end intrinsic;
 
-intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
+intrinsic ReducedModel(phi::FldFunFracSchElt, x_op::FldFunFracSchElt : NaiveUnits := false) -> RngMPolElt
   {}
   f_plane := model(phi,x_op);
-  f_reduced, scalars := ReducedEquation(f_plane);
+  f_reduced, scalars := ReducedEquation(f_plane : NaiveUnits := NaiveUnits);
   return f_reduced, scalars;
 end intrinsic;
 
@@ -82,7 +87,7 @@ intrinsic ReducedModelS3Orbit(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> 
   return s3_size[1,2];
 end intrinsic;
 
-intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> SeqEnum
+intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0, NaiveUnits := false) -> SeqEnum
   {}
 
   Kinit:=BaseRing(BaseRing(Parent(phi)));
@@ -121,7 +126,7 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> 
   reduced_models := [];
   for tup in ts_xs_Fs_sorted do
     t, x, F := Explode(tup);
-    fred,scalars := ReducedModel(t, x);
+    fred,scalars := ReducedModel(t, x : NaiveUnits := NaiveUnits);
     // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
     Append(~reduced_models, <#Sprint(fred), t, x, fred, scalars>);
   end for;
@@ -132,12 +137,12 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0) -> 
   return [ <reddat[4], reddat[5]> : reddat in reduced_models];
 end intrinsic;
 
-intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0) -> RngMPolElt
+intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0, NaiveUnits := false) -> RngMPolElt
   {return then best model with some search parameters}
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
-  list:=AllReducedModels(phi : effort:=effort, degree:=degree);
+  list:=AllReducedModels(phi : effort:=effort, degree:=degree, NaiveUnits := NaiveUnits);
   f := list[1][1];
   return f, BaseRing(Parent(f))!1/list[1][2][1];
 end intrinsic;
