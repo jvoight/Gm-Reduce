@@ -94,9 +94,11 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0, Nai
     //wild effort hack
     effort:=Max(Floor(-2*(Degree(Kinit))/3+11),1);
   end if;
+  printf "now taking effort = %o\n", effort;
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
+  printf "now taking degree = %o\n", degree;
   RsandPs := Support(Divisor(phi));
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
@@ -136,7 +138,7 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0, Nai
   return [ <reddat[4], reddat[5]> : reddat in reduced_models];
 end intrinsic;
 
-intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0, NaiveUnits := -1) -> RngMPolElt
+intrinsic BestModel(phi::FldFunFracSchElt : effort := 0, degree := 0, NaiveUnits := -1) -> RngMPolElt
   {return then best model with some search parameters}
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
