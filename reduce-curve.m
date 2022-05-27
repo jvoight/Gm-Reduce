@@ -41,7 +41,6 @@ intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   //x=v, t=u
 end intrinsic;
 
-// where does effort get passed?
 intrinsic ReducedEquation(f::RngMPolElt : NaiveUnits := false) -> RngMPolElt
   {Given a multivariate polynomial return its reduction}
   t0:=Cputime();
@@ -137,12 +136,20 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0, Nai
   return [ <reddat[4], reddat[5]> : reddat in reduced_models];
 end intrinsic;
 
-intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0, NaiveUnits := false) -> RngMPolElt
+intrinsic BestModel(phi::FldFunFracSchElt : effort := 10, degree := 0, NaiveUnits := -1) -> RngMPolElt
   {return then best model with some search parameters}
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
-  list:=AllReducedModels(phi : effort:=effort, degree:=degree, NaiveUnits := NaiveUnits);
+  if NaiveUnits eq -1 then
+    K := BaseRing(Curve(Parent(phi)));
+    if Degree(K) ge 5 then // if number field has deg >= 5, do naive unit reduction
+      NaiveUnits := true;
+    else
+      NaiveUnits := false;
+    end if;
+  end if;
+  list := AllReducedModels(phi : effort:=effort, degree:=degree, NaiveUnits := NaiveUnits);
   f := list[1][1];
   return f, BaseRing(Parent(f))!1/list[1][2][1];
 end intrinsic;
