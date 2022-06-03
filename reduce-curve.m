@@ -1,3 +1,5 @@
+declare verbose Gm-Reduce, 1;
+
 intrinsic model(phi::FldFunFracSchElt, x_op::FldFunFracSchElt) -> RngMPolElt
   {Given a Belyi map phi and a rational function x_op, find a plane model for the curve with phi and x_op as coordinates}
   fu := MinimalPolynomial(phi);
@@ -44,20 +46,20 @@ end intrinsic;
 intrinsic ReducedEquation(f::RngMPolElt : NaiveUnits := false) -> RngMPolElt
   {Given a multivariate polynomial return its reduction}
   t0:=Cputime();
-  //print "Starting p-adic reduction";
+  vprint Gm-Reduce: "Starting p-adic reduction";
   f_padic, scalars1  := reducemodel_padic(f);
   t1:=Cputime();
-  //printf "Done with p-adic, it took %o seconds\n", t1-t0;
+  vprintf Gm-Reduce: "Done with p-adic, it took %o seconds\n", t1-t0;
 
   t0:=Cputime();
-  //print "Starting unit reduction";
+  vprint Gm-Reduce: "Starting unit reduction";
   if NaiveUnits then
     f_unit, scalars2 := reducemodel_units_naive(f_padic);
   else
     f_unit, scalars2 := reducemodel_units(f_padic);
   end if;
   t1:=Cputime();
-  //printf "Done with units, it took %o seconds\n", t1-t0;
+  vprintf Gm-Reduce: "Done with units, it took %o seconds\n", t1-t0;
   return f_unit, [ scalars1[i]*scalars2[i] : i in [1..#scalars1] ];
 end intrinsic;
 
@@ -94,45 +96,45 @@ intrinsic AllReducedModels(phi::FldFunFracSchElt : effort := 0, degree := 0, Nai
     //wild effort hack
     effort:=Max(Floor(-2*(Degree(Kinit))/3+11),1);
   end if;
-  //printf "now taking effort = %o\n", effort;
+  vprintf Gm-Reduce: "now taking effort = %o\n", effort;
   if degree eq 0 then
     degree:=Floor((Genus(Curve(Parent(phi)))+3)/2);
   end if;
-  //printf "now taking degree = %o\n", degree;
+  vprintf Gm-Reduce: "now taking degree = %o\n", degree;
   RsandPs := Support(Divisor(phi));
   RsandQs := Support(Divisor(phi-1));
   PsQsRs := SetToSequence(SequenceToSet(RsandPs cat RsandQs));
 
   t0:=Cputime();
-  //print "Starting to compute SmallFunctions()";
+  vprint Gm-Reduce: "Starting to compute SmallFunctions()";
   xs := SmallFunctions(PsQsRs, degree);
   t1:=Cputime();
-  //printf "Done with SmallFunctions(), it took %o seconds\n", t1-t0;
+  vprintf Gm-Reduce: "Done with SmallFunctions(), it took %o seconds\n", t1-t0;
 
   t0:=Cputime();
-  //print "Starting to compute SortSmallFunctions()";
+  vprint Gm-Reduce: "Starting to compute SortSmallFunctions()";
   ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
 
   while #ts_xs_Fs_sorted eq 0 do
     degree +:= 1;
-    //printf "degree is now %o", degree;
+    vprintf Gm-Reduce: "degree is now %o", degree;
     xs := SmallFunctions(PsQsRs, degree);
     ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := effort);
   end while;
   t1:=Cputime();
-  //printf "Done with SortSmallFunctions(), it took %o seconds\n", t1-t0;
+  vprintf Gm-Reduce: "Done with SortSmallFunctions(), it took %o seconds\n", t1-t0;
 
-  //printf "Computing reduced models...";
+  vprintf Gm-Reduce: "Computing reduced models...";
   t0 := Cputime();
   reduced_models := [];
   for tup in ts_xs_Fs_sorted do
     t, x, F := Explode(tup);
     fred,scalars := ReducedModel(t, x : NaiveUnits := NaiveUnits);
-    // printf "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
+    //vprintf Gm-Reduce: "t = %o,\nx = %o,\nreduced model = %o\n\n", t, x, fred;
     Append(~reduced_models, <#Sprint(fred), t, x, fred, scalars>);
   end for;
   t1 := Cputime();
-  //printf "done. That took %o seconds\n", t1 - t0;
+  vprintf Gm-Reduce: "done. That took %o seconds\n", t1 - t0;
   Sort(~reduced_models);
   // return reduced_models;
   return [ <reddat[4], reddat[5]> : reddat in reduced_models];
@@ -175,7 +177,7 @@ intrinsic UnreducedModel(phi::FldFunFracSchElt) -> RngMPolElt
 
   while #ts_xs_Fs_sorted eq 0 do
     degree +:= 1;
-    //printf "degree is now %o", degree;
+    vprintf Gm-Reduce: "degree is now %o", degree;
     xs := SmallFunctions(PsQsRs, degree);
     ts_xs_Fs_sorted := SortSmallFunctions(phi, xs : effort := 1);
   end while;
