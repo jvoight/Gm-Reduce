@@ -96,8 +96,8 @@ intrinsic MinimiseL1ToLinearProgram(coefficients::ModMatRngElt, constants::ModMa
 
 		AddConstraints(L, Matrix(k,1,var_no, [0 : i in [1..column_no]] cat extra_var), Matrix(k,[[0]]) : Rel :="le");
   end for;
-  for i in [1..var_no] do  SetLowerBound(L, i, k!-10000); end for;
-
+  for i in [1..column_no] do  SetLowerBound(L, i, k!-10000); end for;
+  for j in [column_no+1..var_no] do  SetLowerBound(L, j, k!0); end for;
   return L;
 end intrinsic;
 
@@ -534,6 +534,9 @@ intrinsic reducemodel_padic_old(f::RngMPolElt : Integral:=true, ClearDenominator
   return new_fuv, new_scaling;
 end intrinsic;
 
+
+
+
 intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
   {}
   K := BaseRing(Parent(f));
@@ -603,6 +606,9 @@ intrinsic reducemodel_units(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
     //AddConstraints(L, Matrix(k,1,NumberOfVariables(L),fix_var),  Matrix(k,1,1,[0]) : Rel := "eq");
 
     soln,state:=Solution(L);
+    if state ne 0 then
+      return reducemodel_units_naive(f);
+    end if;
     assert state eq 0;
     soln:= [ Eltseq(soln)[i] : i in [1..(var_size+1)*#UU] ];
     soln_rounded:=[ Round(a) : a in soln ];
@@ -618,7 +624,7 @@ end intrinsic;
 
 intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEnum
   {Try substituting increasing powers of fundamental units until it stops improving}
-  //print "attempting to naive reduction of the units";
+  print "attempting naive reduction of the units";
   f_init:=f;
   if effort eq 0 then
     exp:=5;
