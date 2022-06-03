@@ -617,23 +617,30 @@ end intrinsic;
 
 
 
-intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
+intrinsic reducemodel_units_naive(f::RngMPolElt: effort:=0) -> RngMPolElt, SeqEnum
   {Try substituting increasing powers of fundamental units until it stops improving}
-
+  //print "attempting to naive reduction of the units";
+  f_init:=f;
+  if effort eq 0 then
+    exp:=5;
+  else
+    exp:=effort;
+  end if;
   variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
 
   K:=BaseRing(Parent(f));
   UK, mUK := UnitGroup(Integers(K));
 
   UU := [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
-  exp:=1;
   us:= Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in UU ]));
 
   yepdone := false;
   oldlen := #Sprint(f);
   //oldlen; Sprint(f);
+
   repeat
-    S := [];
+    //printf "trying units of exponent %o\n", exp;
+    S := [<#Sprint(f), [K!1,K!1,K!1]>];
     for u,v,w in us do
       tuple:=[u,v,w];
       Append(~S, <#Sprint(Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3]), tuple>);
@@ -644,7 +651,7 @@ intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
       oldlen := S[1][1];
       exp := exp+1;
       old_us:=us;
-      us:=Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in us ]));
+      us:=Setseq(Set(&cat[ [ u^e : e in [-exp..exp] ] : u in UU ]));
       us:= Setseq(Set(us) diff Set(old_us));
     else
       yepdone := true;
@@ -652,7 +659,38 @@ intrinsic reducemodel_units_naive(f::RngMPolElt) -> RngMPolElt, SeqEnum
   until yepdone;
 
   tuple:=S[1,2];
-  return Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3], tuple;
+  f:=Evaluate(f,[tuple[i]*variables[i] : i in [1..#variables]])*tuple[3];
+
+
+  yepdone := false;
+  oldlen := #Sprint(f);
+
+  no_tuples:=100;
+  max_exp:=10;
+
+  repeat
+    //printf "trying %o tuples of units with random exponents up to %o\n", no_tuples, max_exp;
+    B:=[<#Sprint(f), [K!1,K!1,K!1]>];
+    ran :=[ [ [ Random(Integers(),max_exp) : i in [1..#UU] ] : j in [1..3] ] : k in [1..no_tuples] ];
+    unit_tuples:= [ [ &*[ UU[i]^elt[i] : i in [1..#UU] ] : elt in list ] : list in ran ];
+    //uus:= [ [ &*[ UU[i]^elt[i] : i in [1..#UU]] : elt in list ]: list in ran ];
+
+    for tup in unit_tuples do
+      Append(~B,<#Sprint(Evaluate(f,[tup[i]*variables[i] : i in [1..#variables]])*tup[3]), tup>);
+    end for;
+    Sort(~B);
+    if B[1][1] lt oldlen then
+      oldlen:=B[1,1];
+      tuple := [ tuple[i]*B[1,2][i] : i in [1..3] ];
+      f:=Evaluate(f,[B[1,2][i]*variables[i] : i in [1..#variables]])*B[1,2][3];
+    else
+      yepdone:=true;
+    end if;
+  until yepdone;
+
+  assert #Sprint(f) le #Sprint(f_init);
+  return f, tuple;
+
 end intrinsic;
 
 
@@ -718,7 +756,79 @@ intrinsic padic_LPsolutions(f::RngMPolElt, pp::RngOrdIdl) -> Any
   //all of the points at which the objective function is minimal.
 end intrinsic;
 
+intrinsic reducemodel_unitsL2(f::RngMPolElt : prec:=0) -> RngMPolElt, SeqEnum
+  {return the quadratic form and average vector using the coefficients}
+  K := BaseRing(Parent(f));
+  if prec eq 0 then
+    //wild guess imprecise
+    prec:=Floor(Sqrt(Degree(K)))*100;
+  end if;
 
+  //u := Parent(fuv).1;
+  //v := Parent(fuv).2;
+  ZK := Integers(K);
+  r,s:=Signature(K);
+  k:=RealField(prec);
+  //Rx3<x1,x2,x3>:=PolynomialRing(Rationals(),3);
+
+  variables:=[ Parent(f).i : i in [1..#Names(Parent(f))] ];
+  var_size:=#variables;
+  ZK := Integers(K);
+
+  inf_places:=InfinitePlaces(K);
+  assert #inf_places eq r+s;
+  phi:=function(x);
+    return [ Log(k!Abs(Evaluate(x,v : Precision:=prec))) : v in inf_places ];
+    //assert first r places are real.
+  end function;
+
+  mexps := [ Exponents(m) : m in Monomials(f) ];
+  coefs:=Coefficients(f);
+  //assert &+[ coefs[i]*(u^mexps[i,1])*v^mexps[i,2] : i in [1..#mexps] ] eq fuv;
+
+  UK,mUK:=UnitGroup(K);
+  k := RealField(prec);
+  //UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) ];
+  UU:= [ K!(mUK(eps)) : eps in Generators(UK) | not(IsFinite(eps)) and k!0 notin phi(K!(mUK(eps)))  ];
+
+  if UU eq [] then
+    return f, [K!1: i in [1..var_size+1] ];
+  else
+    constants := [];
+    abs_coef := [];
+
+    for n in [1..#mexps] do
+
+      alpha_norm := Log(k!Abs(Norm(coefs[n])))/(r+s);
+      log_coef:= phi(coefs[n]);
+      tuple:=[];
+
+      for m in [1..r+s] do
+
+        if m le r then
+          const:= Log(Abs(Evaluate(coefs[n], inf_places[m] : Precision:=prec))) - Log(k!Abs(Norm(coefs[n])))/(r+s);
+        else
+          const:= Log(Abs(Evaluate(coefs[n], inf_places[m] : Precision:=prec))) - Log(k!Abs(Norm(coefs[n])))/(2*(r+s));
+        end if;
+        Append(~tuple, const);
+
+        etas:= [ phi(eps)[m] : eps in UU ];
+        lhs:=&cat[ [ eta*a : a in mexps[n] ] cat [eta] : eta in etas ];
+        Append(~abs_coef, lhs);
+
+      end for;
+      Append(~constants,tuple);
+    end for;
+
+    average:= [ &+[ (A[i])/#mexps : A in constants ] : i in [1..r+s] ];
+
+    L2coef:= [ &+[I[i] : I in mexps] : i in [1..var_size] ] cat [#mexps];
+    L2pols<[X]> := PolynomialRing(k,3*(r+s));
+    quadform_pol:= &+[ (L2coef[1]*X[i] + L2coef[1]*X[r+s+i] + L2coef[1]*X[2*(r+s)+i])^2 : i in [1..r+s] ];
+    L2mat:=SymmetricMatrix(quadform_pol);
+    return L2mat, L2coef, average;
+  end if;
+end intrinsic;
 
 
 
